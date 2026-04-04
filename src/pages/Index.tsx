@@ -10,9 +10,13 @@ import PriceHistory from '@/components/PriceHistory';
 import Features from '@/components/Features';
 import CategoryExplorer from '@/components/CategoryExplorer';
 import HowItWorks from '@/components/HowItWorks';
+import StoreCloud from '@/components/StoreCloud';
+import Testimonials from '@/components/Testimonials';
+import Newsletter from '@/components/Newsletter';
 import Footer from '@/components/Footer';
 import SearchOverlay from '@/components/SearchOverlay';
 import PriceAlertModal from '@/components/PriceAlertModal';
+import Magnetic from '@/components/Magnetic';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -34,6 +38,7 @@ const Index = () => {
           <Hero />
         </div>
 
+        <StoreCloud />
         <HowItWorks />
 
         {/* Results Preview Section */}
@@ -103,18 +108,22 @@ const Index = () => {
                   We recommend waiting for the upcoming sale.
                 </p>
               </div>
-              <button 
-                onClick={() => setIsAlertOpen(true)}
-                className="w-full py-4 rounded-2xl bg-white text-purple-600 font-bold hover:bg-purple-50 transition-colors"
-              >
-                Set Price Alert
-              </button>
+              <Magnetic strength={0.3}>
+                <button 
+                  onClick={() => setIsAlertOpen(true)}
+                  className="w-full py-4 rounded-2xl bg-white text-purple-600 font-bold hover:bg-purple-50 transition-colors"
+                >
+                  Set Price Alert
+                </button>
+              </Magnetic>
             </motion.div>
           </div>
         </section>
 
         <CategoryExplorer />
         <Features />
+        <Testimonials />
+        <Newsletter />
 
         {/* CTA Section */}
         <section className="max-w-7xl mx-auto px-6 py-32">
@@ -133,12 +142,16 @@ const Index = () => {
                 Join 2M+ smart shoppers who use Vantage to find the best deals every single day.
               </p>
               <div className="flex flex-col md:flex-row gap-4 justify-center">
-                <button className="px-10 py-5 rounded-2xl bg-white text-gray-900 font-bold text-lg hover:scale-105 transition-transform">
-                  Get Started for Free
-                </button>
-                <button className="px-10 py-5 rounded-2xl glass text-white font-bold text-lg hover:bg-white/10 transition-all">
-                  Download Extension
-                </button>
+                <Magnetic strength={0.2}>
+                  <button className="px-10 py-5 rounded-2xl bg-white text-gray-900 font-bold text-lg hover:scale-105 transition-transform">
+                    Get Started for Free
+                  </button>
+                </Magnetic>
+                <Magnetic strength={0.2}>
+                  <button className="px-10 py-5 rounded-2xl glass text-white font-bold text-lg hover:bg-white/10 transition-all">
+                    Download Extension
+                  </button>
+                </Magnetic>
               </div>
             </div>
           </motion.div>
