@@ -31,6 +31,8 @@ import QuickViewModal from '@/components/QuickViewModal';
 import PriceTimeline from '@/components/PriceTimeline';
 import TrendingDeals from '@/components/TrendingDeals';
 import ScrollToTop from '@/components/ScrollToTop';
+import WatchlistPreview from '@/components/WatchlistPreview';
+import FAQ from '@/components/FAQ';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -183,6 +185,7 @@ const Index = () => {
 
         <TrendingDeals />
         <PriceTimeline />
+        <WatchlistPreview />
         <FeaturedDeal />
         <SavingsCalculator />
         <VisualSearch />
@@ -191,6 +194,7 @@ const Index = () => {
         <CategoryExplorer />
         <MobileApp />
         <Features />
+        <FAQ />
         <Testimonials />
         <Newsletter />
 
