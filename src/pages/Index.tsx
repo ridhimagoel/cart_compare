@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
@@ -8,17 +8,33 @@ import BackgroundBlobs from '@/components/BackgroundBlobs';
 import ProductCard from '@/components/ProductCard';
 import PriceHistory from '@/components/PriceHistory';
 import Features from '@/components/Features';
+import CategoryExplorer from '@/components/CategoryExplorer';
+import HowItWorks from '@/components/HowItWorks';
 import Footer from '@/components/Footer';
+import SearchOverlay from '@/components/SearchOverlay';
+import PriceAlertModal from '@/components/PriceAlertModal';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+
   return (
     <div className="min-h-screen selection:bg-purple-200">
       <BackgroundBlobs />
       <Navbar />
       
+      {/* Global Overlays */}
+      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      <PriceAlertModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} />
+
       <main>
-        <Hero />
+        {/* Hero with Search Trigger */}
+        <div onClick={() => setIsSearchOpen(true)} className="cursor-pointer">
+          <Hero />
+        </div>
+
+        <HowItWorks />
 
         {/* Results Preview Section */}
         <section className="max-w-7xl mx-auto px-6 py-20">
@@ -87,13 +103,17 @@ const Index = () => {
                   We recommend waiting for the upcoming sale.
                 </p>
               </div>
-              <button className="w-full py-4 rounded-2xl bg-white text-purple-600 font-bold hover:bg-purple-50 transition-colors">
+              <button 
+                onClick={() => setIsAlertOpen(true)}
+                className="w-full py-4 rounded-2xl bg-white text-purple-600 font-bold hover:bg-purple-50 transition-colors"
+              >
                 Set Price Alert
               </button>
             </motion.div>
           </div>
         </section>
 
+        <CategoryExplorer />
         <Features />
 
         {/* CTA Section */}
