@@ -34,6 +34,8 @@ import ScrollToTop from '@/components/ScrollToTop';
 import WatchlistPreview from '@/components/WatchlistPreview';
 import FAQ from '@/components/FAQ';
 import CommunityWins from '@/components/CommunityWins';
+import PriceHeatmap from '@/components/PriceHeatmap';
+import ShoppingGuides from '@/components/ShoppingGuides';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -186,11 +188,13 @@ const Index = () => {
 
         <TrendingDeals />
         <PriceTimeline />
+        <PriceHeatmap />
         <WatchlistPreview />
         <FeaturedDeal />
         <SavingsCalculator />
         <VisualSearch />
         <ExtensionShowcase />
+        <ShoppingGuides />
         <ComparisonTable />
         <CategoryExplorer />
         <MobileApp />
