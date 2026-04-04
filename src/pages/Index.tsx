@@ -22,6 +22,9 @@ import ComparisonTable from '@/components/ComparisonTable';
 import MobileApp from '@/components/MobileApp';
 import LiveFeed from '@/components/LiveFeed';
 import ExtensionShowcase from '@/components/ExtensionShowcase';
+import FeaturedDeal from '@/components/FeaturedDeal';
+import SavingsCalculator from '@/components/SavingsCalculator';
+import VisualSearch from '@/components/VisualSearch';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -133,6 +136,9 @@ const Index = () => {
           </div>
         </section>
 
+        <FeaturedDeal />
+        <SavingsCalculator />
+        <VisualSearch />
         <ExtensionShowcase />
         <ComparisonTable />
         <CategoryExplorer />
