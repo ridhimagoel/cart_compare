@@ -33,6 +33,7 @@ import TrendingDeals from '@/components/TrendingDeals';
 import ScrollToTop from '@/components/ScrollToTop';
 import WatchlistPreview from '@/components/WatchlistPreview';
 import FAQ from '@/components/FAQ';
+import CommunityWins from '@/components/CommunityWins';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -195,6 +196,7 @@ const Index = () => {
         <MobileApp />
         <Features />
         <FAQ />
+        <CommunityWins />
         <Testimonials />
         <Newsletter />
 
