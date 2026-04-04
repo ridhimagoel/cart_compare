@@ -17,7 +17,7 @@ import Footer from '@/components/Footer';
 import SearchOverlay from '@/components/SearchOverlay';
 import PriceAlertModal from '@/components/PriceAlertModal';
 import Magnetic from '@/components/Magnetic';
-import CustomCursor from '@/components/CustomCursor';
+import InteractiveGrid from '@/components/InteractiveGrid';
 import ComparisonTable from '@/components/ComparisonTable';
 import MobileApp from '@/components/MobileApp';
 import { MadeWithDyad } from "@/components/made-with-dyad";
@@ -27,8 +27,8 @@ const Index = () => {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   return (
-    <div className="min-h-screen selection:bg-purple-200 cursor-none">
-      <CustomCursor />
+    <div className="min-h-screen selection:bg-purple-200">
+      <InteractiveGrid />
       <BackgroundBlobs />
       <Navbar />
       
