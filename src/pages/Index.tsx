@@ -28,6 +28,9 @@ import VisualSearch from '@/components/VisualSearch';
 import TopTicker from '@/components/TopTicker';
 import AIAssistant from '@/components/AIAssistant';
 import QuickViewModal from '@/components/QuickViewModal';
+import PriceTimeline from '@/components/PriceTimeline';
+import TrendingDeals from '@/components/TrendingDeals';
+import ScrollToTop from '@/components/ScrollToTop';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -57,6 +60,7 @@ const Index = () => {
         product={selectedProduct}
       />
       <AIAssistant />
+      <ScrollToTop />
 
       <main>
         {/* Hero with Search Trigger */}
@@ -177,6 +181,8 @@ const Index = () => {
           </div>
         </section>
 
+        <TrendingDeals />
+        <PriceTimeline />
         <FeaturedDeal />
         <SavingsCalculator />
         <VisualSearch />
