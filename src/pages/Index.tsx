@@ -25,14 +25,25 @@ import ExtensionShowcase from '@/components/ExtensionShowcase';
 import FeaturedDeal from '@/components/FeaturedDeal';
 import SavingsCalculator from '@/components/SavingsCalculator';
 import VisualSearch from '@/components/VisualSearch';
+import TopTicker from '@/components/TopTicker';
+import AIAssistant from '@/components/AIAssistant';
+import QuickViewModal from '@/components/QuickViewModal';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+
+  const handleProductClick = (product: any) => {
+    setSelectedProduct(product);
+    setIsQuickViewOpen(true);
+  };
 
   return (
     <div className="min-h-screen selection:bg-purple-200">
+      <TopTicker />
       <InteractiveGrid />
       <BackgroundBlobs />
       <Navbar />
@@ -40,6 +51,12 @@ const Index = () => {
       {/* Global Overlays */}
       <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <PriceAlertModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} />
+      <QuickViewModal 
+        isOpen={isQuickViewOpen} 
+        onClose={() => setIsQuickViewOpen(false)} 
+        product={selectedProduct}
+      />
+      <AIAssistant />
 
       <main>
         {/* Hero with Search Trigger */}
@@ -76,7 +93,15 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-            <div className="product-card cursor-pointer">
+            <div 
+              className="product-card cursor-pointer"
+              onClick={() => handleProductClick({
+                name: "iPhone 15 Pro Max",
+                price: "₹1,44,900",
+                platform: "Amazon",
+                img: "https://images.unsplash.com/photo-1696446701796-da61225697cc?w=800&q=80"
+              })}
+            >
               <ProductCard 
                 platform="Amazon" 
                 price="₹1,44,900" 
@@ -86,7 +111,15 @@ const Index = () => {
                 delay={0.1}
               />
             </div>
-            <div className="product-card cursor-pointer">
+            <div 
+              className="product-card cursor-pointer"
+              onClick={() => handleProductClick({
+                name: "iPhone 15 Pro Max",
+                price: "₹1,48,900",
+                platform: "Flipkart",
+                img: "https://images.unsplash.com/photo-1696446701796-da61225697cc?w=800&q=80"
+              })}
+            >
               <ProductCard 
                 platform="Flipkart" 
                 price="₹1,48,900" 
@@ -95,7 +128,15 @@ const Index = () => {
                 delay={0.2}
               />
             </div>
-            <div className="product-card cursor-pointer">
+            <div 
+              className="product-card cursor-pointer"
+              onClick={() => handleProductClick({
+                name: "iPhone 15 Pro Max",
+                price: "₹1,52,900",
+                platform: "Reliance Digital",
+                img: "https://images.unsplash.com/photo-1696446701796-da61225697cc?w=800&q=80"
+              })}
+            >
               <ProductCard 
                 platform="Reliance Digital" 
                 price="₹1,52,900" 
