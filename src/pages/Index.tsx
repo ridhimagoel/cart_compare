@@ -7,33 +7,20 @@ import Hero from '@/components/Hero';
 import BackgroundBlobs from '@/components/BackgroundBlobs';
 import ProductCard from '@/components/ProductCard';
 import PriceHistory from '@/components/PriceHistory';
-import Features from '@/components/Features';
-import CategoryExplorer from '@/components/CategoryExplorer';
-import HowItWorks from '@/components/HowItWorks';
 import StoreCloud from '@/components/StoreCloud';
-import Testimonials from '@/components/Testimonials';
 import Newsletter from '@/components/Newsletter';
 import Footer from '@/components/Footer';
 import SearchOverlay from '@/components/SearchOverlay';
 import PriceAlertModal from '@/components/PriceAlertModal';
 import Magnetic from '@/components/Magnetic';
 import InteractiveGrid from '@/components/InteractiveGrid';
-import ComparisonTable from '@/components/ComparisonTable';
-import MobileApp from '@/components/MobileApp';
 import LiveFeed from '@/components/LiveFeed';
 import ExtensionShowcase from '@/components/ExtensionShowcase';
-import FeaturedDeal from '@/components/FeaturedDeal';
 import TopTicker from '@/components/TopTicker';
 import AIAssistant from '@/components/AIAssistant';
 import QuickViewModal from '@/components/QuickViewModal';
-import PriceTimeline from '@/components/PriceTimeline';
-import TrendingDeals from '@/components/TrendingDeals';
 import ScrollToTop from '@/components/ScrollToTop';
-import WatchlistPreview from '@/components/WatchlistPreview';
 import FAQ from '@/components/FAQ';
-import CommunityWins from '@/components/CommunityWins';
-import PriceHeatmap from '@/components/PriceHeatmap';
-import VerifiedCoupons from '@/components/VerifiedCoupons';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -73,9 +60,8 @@ const Index = () => {
 
         <LiveFeed />
         <StoreCloud />
-        <HowItWorks />
 
-        {/* Results Preview Section */}
+        {/* Core Comparison Section */}
         <section className="max-w-7xl mx-auto px-6 py-20">
           <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6">
             <div className="max-w-xl">
@@ -88,14 +74,8 @@ const Index = () => {
                 Live <span className="text-gradient">Comparisons</span>
               </motion.h2>
               <p className="text-lg text-gray-600">
-                Showing real-time results for "iPhone 15 Pro Max - 256GB Titanium"
+                Real-time results for "iPhone 15 Pro Max - 256GB Titanium"
               </p>
-            </div>
-            <div className="flex gap-4">
-              <div className="glass px-6 py-3 rounded-2xl flex items-center gap-3">
-                <span className="text-sm font-medium text-gray-500">Sort by:</span>
-                <span className="text-sm font-bold">Lowest Price</span>
-              </div>
             </div>
           </div>
 
@@ -184,23 +164,11 @@ const Index = () => {
           </div>
         </section>
 
-        <TrendingDeals />
-        <PriceTimeline />
-        <PriceHeatmap />
-        <VerifiedCoupons />
-        <WatchlistPreview />
-        <FeaturedDeal />
         <ExtensionShowcase />
-        <ComparisonTable />
-        <CategoryExplorer />
-        <MobileApp />
-        <Features />
         <FAQ />
-        <CommunityWins />
-        <Testimonials />
         <Newsletter />
 
-        {/* CTA Section */}
+        {/* Final CTA */}
         <section className="max-w-7xl mx-auto px-6 py-32">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
