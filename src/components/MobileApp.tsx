@@ -28,7 +28,7 @@ const MobileApp = () => {
               Savings in your <span className="text-blue-400 italic">pocket.</span>
             </h2>
             <p className="text-xl text-gray-400 mb-12 leading-relaxed max-w-lg">
-              Scan barcodes in-store, get instant price alerts, and manage your wishlist on the go. 
+              Get instant price alerts, track your favorite products, and manage your wishlist on the go. 
               The ultimate shopping companion is now available for iOS and Android.
             </p>
             

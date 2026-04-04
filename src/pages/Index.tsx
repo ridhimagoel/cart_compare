@@ -23,8 +23,6 @@ import MobileApp from '@/components/MobileApp';
 import LiveFeed from '@/components/LiveFeed';
 import ExtensionShowcase from '@/components/ExtensionShowcase';
 import FeaturedDeal from '@/components/FeaturedDeal';
-import SavingsCalculator from '@/components/SavingsCalculator';
-import VisualSearch from '@/components/VisualSearch';
 import TopTicker from '@/components/TopTicker';
 import AIAssistant from '@/components/AIAssistant';
 import QuickViewModal from '@/components/QuickViewModal';
@@ -35,9 +33,7 @@ import WatchlistPreview from '@/components/WatchlistPreview';
 import FAQ from '@/components/FAQ';
 import CommunityWins from '@/components/CommunityWins';
 import PriceHeatmap from '@/components/PriceHeatmap';
-import ShoppingGuides from '@/components/ShoppingGuides';
 import VerifiedCoupons from '@/components/VerifiedCoupons';
-import HallOfFame from '@/components/HallOfFame';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -194,11 +190,7 @@ const Index = () => {
         <VerifiedCoupons />
         <WatchlistPreview />
         <FeaturedDeal />
-        <SavingsCalculator />
-        <VisualSearch />
         <ExtensionShowcase />
-        <ShoppingGuides />
-        <HallOfFame />
         <ComparisonTable />
         <CategoryExplorer />
         <MobileApp />
