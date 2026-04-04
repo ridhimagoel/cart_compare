@@ -17,6 +17,9 @@ import Footer from '@/components/Footer';
 import SearchOverlay from '@/components/SearchOverlay';
 import PriceAlertModal from '@/components/PriceAlertModal';
 import Magnetic from '@/components/Magnetic';
+import CustomCursor from '@/components/CustomCursor';
+import ComparisonTable from '@/components/ComparisonTable';
+import MobileApp from '@/components/MobileApp';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -24,7 +27,8 @@ const Index = () => {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   return (
-    <div className="min-h-screen selection:bg-purple-200">
+    <div className="min-h-screen selection:bg-purple-200 cursor-none">
+      <CustomCursor />
       <BackgroundBlobs />
       <Navbar />
       
@@ -66,28 +70,34 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
-            <ProductCard 
-              platform="Amazon" 
-              price="₹1,44,900" 
-              discount="12%" 
-              logo="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg"
-              isLowest
-              delay={0.1}
-            />
-            <ProductCard 
-              platform="Flipkart" 
-              price="₹1,48,900" 
-              discount="8%" 
-              logo="https://upload.wikimedia.org/wikipedia/commons/7/7a/Flipkart_logo.svg"
-              delay={0.2}
-            />
-            <ProductCard 
-              platform="Reliance Digital" 
-              price="₹1,52,900" 
-              discount="5%" 
-              logo="https://upload.wikimedia.org/wikipedia/commons/b/b8/Reliance_Digital_logo.svg"
-              delay={0.3}
-            />
+            <div className="product-card cursor-pointer">
+              <ProductCard 
+                platform="Amazon" 
+                price="₹1,44,900" 
+                discount="12%" 
+                logo="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg"
+                isLowest
+                delay={0.1}
+              />
+            </div>
+            <div className="product-card cursor-pointer">
+              <ProductCard 
+                platform="Flipkart" 
+                price="₹1,48,900" 
+                discount="8%" 
+                logo="https://upload.wikimedia.org/wikipedia/commons/7/7a/Flipkart_logo.svg"
+                delay={0.2}
+              />
+            </div>
+            <div className="product-card cursor-pointer">
+              <ProductCard 
+                platform="Reliance Digital" 
+                price="₹1,52,900" 
+                discount="5%" 
+                logo="https://upload.wikimedia.org/wikipedia/commons/b/b8/Reliance_Digital_logo.svg"
+                delay={0.3}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -120,7 +130,9 @@ const Index = () => {
           </div>
         </section>
 
+        <ComparisonTable />
         <CategoryExplorer />
+        <MobileApp />
         <Features />
         <Testimonials />
         <Newsletter />
