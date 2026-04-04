@@ -1,12 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, User, Menu, X } from 'lucide-react';
+import { motion, useScroll, useSpring } from 'framer-motion';
+import { Search, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -22,9 +28,15 @@ const Navbar = () => {
         isScrolled ? 'py-3' : 'py-6'
       }`}
     >
-      <div className={`max-w-7xl mx-auto flex items-center justify-between px-6 py-3 rounded-full transition-all duration-500 ${
+      <div className={`max-w-7xl mx-auto flex items-center justify-between px-6 py-3 rounded-full transition-all duration-500 relative overflow-hidden ${
         isScrolled ? 'glass shadow-lg' : 'bg-transparent'
       }`}>
+        {/* Scroll Progress Bar */}
+        <motion.div 
+          className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-600 to-purple-600 origin-left"
+          style={{ scaleX }}
+        />
+
         <div className="flex items-center gap-8">
           <a href="/" className="text-2xl font-bold tracking-tighter flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-lg rotate-12" />

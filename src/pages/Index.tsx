@@ -20,6 +20,8 @@ import Magnetic from '@/components/Magnetic';
 import InteractiveGrid from '@/components/InteractiveGrid';
 import ComparisonTable from '@/components/ComparisonTable';
 import MobileApp from '@/components/MobileApp';
+import LiveFeed from '@/components/LiveFeed';
+import ExtensionShowcase from '@/components/ExtensionShowcase';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -42,6 +44,7 @@ const Index = () => {
           <Hero />
         </div>
 
+        <LiveFeed />
         <StoreCloud />
         <HowItWorks />
 
@@ -130,6 +133,7 @@ const Index = () => {
           </div>
         </section>
 
+        <ExtensionShowcase />
         <ComparisonTable />
         <CategoryExplorer />
         <MobileApp />
