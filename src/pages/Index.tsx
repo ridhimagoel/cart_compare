@@ -36,6 +36,8 @@ import FAQ from '@/components/FAQ';
 import CommunityWins from '@/components/CommunityWins';
 import PriceHeatmap from '@/components/PriceHeatmap';
 import ShoppingGuides from '@/components/ShoppingGuides';
+import VerifiedCoupons from '@/components/VerifiedCoupons';
+import HallOfFame from '@/components/HallOfFame';
 import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
@@ -189,12 +191,14 @@ const Index = () => {
         <TrendingDeals />
         <PriceTimeline />
         <PriceHeatmap />
+        <VerifiedCoupons />
         <WatchlistPreview />
         <FeaturedDeal />
         <SavingsCalculator />
         <VisualSearch />
         <ExtensionShowcase />
         <ShoppingGuides />
+        <HallOfFame />
         <ComparisonTable />
         <CategoryExplorer />
         <MobileApp />
