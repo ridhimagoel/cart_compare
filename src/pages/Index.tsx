@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
-import ModernBackground from '@/components/ModernBackground';
+import BackgroundBlobs from '@/components/BackgroundBlobs';
 import ProductCard from '@/components/ProductCard';
 import PriceHistory from '@/components/PriceHistory';
 import StoreCloud from '@/components/StoreCloud';
@@ -13,6 +13,7 @@ import Footer from '@/components/Footer';
 import SearchOverlay from '@/components/SearchOverlay';
 import PriceAlertModal from '@/components/PriceAlertModal';
 import Magnetic from '@/components/Magnetic';
+import InteractiveGrid from '@/components/InteractiveGrid';
 import LiveFeed from '@/components/LiveFeed';
 import ExtensionShowcase from '@/components/ExtensionShowcase';
 import TopTicker from '@/components/TopTicker';
@@ -34,9 +35,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen selection:bg-indigo-100">
+    <div className="min-h-screen selection:bg-purple-200">
       <TopTicker />
-      <ModernBackground />
+      <InteractiveGrid />
+      <BackgroundBlobs />
       <Navbar />
       
       {/* Global Overlays */}
@@ -141,7 +143,7 @@ const Index = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
-              className="glass p-8 rounded-[2.5rem] flex flex-col justify-between bg-gradient-to-br from-indigo-600 to-purple-700 text-white border-none"
+              className="glass p-8 rounded-[2.5rem] flex flex-col justify-between bg-gradient-to-br from-purple-600 to-blue-700 text-white border-none"
             >
               <div>
                 <h3 className="text-3xl font-bold mb-4">Price Prediction</h3>
