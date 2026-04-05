@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, useScroll, useSpring, AnimatePresence } from 'framer-motion';
-import { Search, Menu, X, ArrowRight } from 'lucide-react';
+import { Search, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from './ThemeToggle';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -44,7 +45,7 @@ const Navbar = () => {
           <div className="flex items-center gap-8">
             <a href="/" className="text-2xl font-bold tracking-tighter flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-lg rotate-12" />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">Vantage</span>
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400">Vantage</span>
             </a>
             
             <div className="hidden md:flex items-center gap-6">
@@ -52,7 +53,7 @@ const Navbar = () => {
                 <a 
                   key={item} 
                   href="#" 
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors relative group"
+                  className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors relative group"
                 >
                   {item}
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-purple-600 transition-all duration-300 group-hover:w-full" />
@@ -62,10 +63,11 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/50 hidden sm:flex">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/50 dark:hover:bg-white/10 hidden sm:flex">
               <Search className="w-5 h-5" />
             </Button>
-            <Button className="rounded-full bg-gray-900 text-white hover:bg-gray-800 px-6 hidden sm:flex">
+            <Button className="rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-200 px-6 hidden sm:flex">
               Sign In
             </Button>
             <Button 
@@ -95,14 +97,17 @@ const Navbar = () => {
                   <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-lg rotate-12" />
                   <span className="text-2xl font-bold tracking-tighter">Vantage</span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="rounded-full"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <X className="w-6 h-6" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <X className="w-6 h-6" />
+                  </Button>
+                </div>
               </div>
 
               <div className="flex flex-col gap-8">
@@ -122,7 +127,7 @@ const Navbar = () => {
               </div>
 
               <div className="mt-auto space-y-4">
-                <Button className="w-full h-16 rounded-2xl bg-gray-900 text-white text-lg font-bold">
+                <Button className="w-full h-16 rounded-2xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-lg font-bold">
                   Sign In
                 </Button>
                 <Button variant="outline" className="w-full h-16 rounded-2xl border-2 text-lg font-bold">
