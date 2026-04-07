@@ -27,7 +27,7 @@ const WatchlistPreview = () => {
               Your personal <span className="text-gradient">deal hunter.</span>
             </h2>
             <p className="text-xl text-gray-600 mb-12 leading-relaxed">
-              Save products to your watchlist and let Vantage do the hard work. 
+              Save products to your watchlist and let compare_cart do the hard work. 
               We track prices 24/7 and notify you the moment your target price is hit.
             </p>
             

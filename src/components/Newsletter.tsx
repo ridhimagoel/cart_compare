@@ -25,7 +25,7 @@ const Newsletter = () => {
             Never miss a <span className="text-gradient">price drop.</span>
           </h2>
           <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-            Join our newsletter and get the best deals of the week delivered straight to your inbox. No spam, just savings.
+            Get a weekly summary of meaningful price drops, handpicked deals, and buying tips. Clear, useful, and spam-free.
           </p>
           
           <div className="flex flex-col md:flex-row gap-4 max-w-md mx-auto">
@@ -36,7 +36,7 @@ const Newsletter = () => {
             />
             <Magnetic strength={0.2}>
               <button className="h-14 px-8 rounded-2xl bg-gray-900 text-white font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-all active:scale-95">
-                Subscribe <Send className="w-4 h-4" />
+                Get Weekly Deals <Send className="w-4 h-4" />
               </button>
             </Magnetic>
           </div>

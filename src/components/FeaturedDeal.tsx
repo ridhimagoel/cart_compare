@@ -42,7 +42,7 @@ const FeaturedDeal = () => {
               
               <p className="text-xl text-gray-400 mb-12 leading-relaxed max-w-lg">
                 Industry-leading noise cancellation, now at a price that's hard to believe. 
-                Tracked across 50+ stores, verified by Vantage AI.
+                Tracked across 50+ stores, verified by compare_cart AI.
               </p>
 
               <div className="flex items-center gap-8 mb-12">

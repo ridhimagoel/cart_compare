@@ -1,0 +1,6 @@
+<svg width="260" height="80" viewBox="0 0 260 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="260" height="80" rx="16" fill="white"/>
+  <circle cx="41" cy="40" r="22" fill="#9F2089"/>
+  <path d="M31 50V31H36L41 39L46 31H51V50H46V39L41 47L36 39V50H31Z" fill="white"/>
+  <text x="74" y="47" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#1F2937">Meesho</text>
+</svg>

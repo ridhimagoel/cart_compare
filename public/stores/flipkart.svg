@@ -1,0 +1,6 @@
+<svg width="260" height="80" viewBox="0 0 260 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="260" height="80" rx="16" fill="white"/>
+  <rect x="20" y="18" width="42" height="42" rx="10" fill="#2874F0"/>
+  <path d="M34 29H50V34H40V38H48V43H40V51H34V29Z" fill="white"/>
+  <text x="74" y="47" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#1F2937">Flipkart</text>
+</svg>

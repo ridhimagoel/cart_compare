@@ -1,76 +1,110 @@
 "use client";
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Twitter, Instagram, Github, Linkedin, ArrowUpRight, Mail, MapPin, Phone } from 'lucide-react';
+import { Twitter, Instagram, Github, Linkedin, ArrowUpRight, Mail, MapPin } from 'lucide-react';
 
 const Footer = () => {
   const footerLinks = {
-    Product: ['Price Tracker', 'Browser Extension', 'Mobile App', 'Price Alerts', 'Verified Coupons'],
-    Company: ['About Us', 'Careers', 'Press Kit', 'Contact', 'Partners'],
-    Resources: ['Help Center', 'Shopping Guides', 'Market Trends', 'API Documentation', 'Community'],
-    Legal: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Security', 'Disclaimer']
+    Product: [
+      { label: 'Price Tracker', href: '#live-comparisons' },
+      { label: 'Price Alerts', href: '#how-it-works' },
+      { label: 'Store Comparison', href: '#comparison-table' },
+      { label: 'Browser Extension', href: '#extension' },
+    ],
+    Company: [
+      { label: 'About', href: '#' },
+      { label: 'Careers', href: '#' },
+      { label: 'Partners', href: '#' },
+      { label: 'Contact', href: '#faq' },
+    ],
+    Resources: [
+      { label: 'Help Center', href: '#faq' },
+      { label: 'How It Works', href: '#how-it-works' },
+      { label: 'Smart Shopping Tips', href: '#' },
+      { label: 'Community', href: '#' },
+    ],
+    Legal: [
+      { label: 'Privacy Policy', href: '#' },
+      { label: 'Terms of Service', href: '#' },
+      { label: 'Cookie Policy', href: '#' },
+      { label: 'Security', href: '#' },
+    ]
   };
 
   return (
-    <footer className="relative pt-24 pb-12 px-6 bg-white border-t border-gray-100">
+    <footer className="relative pt-14 pb-10 px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-20">
-          <div className="lg:col-span-2">
-            <a href="/" className="text-3xl font-bold tracking-tighter flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-xl rotate-12" />
-              <span>Vantage</span>
-            </a>
-            <p className="text-lg text-gray-500 max-w-sm leading-relaxed mb-8">
-              The world's most advanced price tracking engine. We help millions of shoppers save time and money every day through AI-powered insights.
-            </p>
-            <div className="space-y-4 mb-8">
-              <div className="flex items-center gap-3 text-gray-500">
-                <Mail className="w-5 h-5 text-purple-600" />
-                <span>hello@vantage.sh</span>
-              </div>
-              <div className="flex items-center gap-3 text-gray-500">
-                <MapPin className="w-5 h-5 text-purple-600" />
-                <span>San Francisco, CA • Bangalore, IN</span>
-              </div>
-            </div>
-            <div className="flex gap-4">
-              {[Twitter, Instagram, Github, Linkedin].map((Icon, i) => (
-                <a key={i} href="#" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-900 hover:text-white transition-all duration-300">
-                  <Icon className="w-5 h-5" />
+        <div className="relative overflow-hidden rounded-[2.5rem] border border-white/15 bg-gradient-to-br from-slate-900 via-[#111a2e] to-slate-800 text-white shadow-[0_20px_70px_rgba(15,23,42,0.35)]">
+          <div className="pointer-events-none absolute -top-24 -right-20 w-72 h-72 bg-blue-500/18 blur-3xl rounded-full" />
+          <div className="pointer-events-none absolute -bottom-24 -left-16 w-72 h-72 bg-purple-500/18 blur-3xl rounded-full" />
+
+          <div className="relative p-8 md:p-12 lg:p-14">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-12">
+              <div className="lg:col-span-5">
+                <a href="/" className="text-3xl font-bold tracking-tighter flex items-center gap-3 mb-5">
+                  <img src="/brand/compare-cart-mark.svg" alt="compare_cart logo" className="w-10 h-10" />
+                  <span>compare_cart</span>
                 </a>
-              ))}
-            </div>
-          </div>
-          
-          {Object.entries(footerLinks).map(([title, links]) => (
-            <div key={title}>
-              <h4 className="font-bold text-gray-900 mb-6 uppercase tracking-widest text-xs">{title}</h4>
-              <ul className="space-y-4">
-                {links.map(item => (
-                  <li key={item}>
-                    <a href="#" className="text-gray-500 hover:text-purple-600 flex items-center gap-1 group transition-colors text-sm font-medium">
-                      {item} <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <p className="text-base md:text-lg text-slate-300 max-w-sm leading-relaxed mb-8">
+                  Compare prices faster, track drops, and buy at the right time with practical shopping insights.
+                </p>
+
+                <div className="space-y-3 mb-7">
+                  <div className="flex items-center gap-3 text-slate-300">
+                    <Mail className="w-5 h-5 text-blue-300" />
+                    <span>hello@comparecart.app</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-slate-300">
+                    <MapPin className="w-5 h-5 text-purple-300" />
+                    <span>San Francisco, CA • Bangalore, IN</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  {[Twitter, Instagram, Github, Linkedin].map((Icon, i) => (
+                    <a
+                      key={i}
+                      href="#"
+                      className="w-10 h-10 rounded-full border border-white/15 bg-white/5 text-slate-200 flex items-center justify-center hover:bg-white hover:text-slate-900 transition-all duration-300"
+                    >
+                      <Icon className="w-5 h-5" />
                     </a>
-                  </li>
+                  ))}
+                </div>
+              </div>
+
+              <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-4 gap-8">
+                {Object.entries(footerLinks).map(([title, links]) => (
+                  <div key={title}>
+                    <h4 className="font-bold text-slate-200 mb-4 uppercase tracking-widest text-xs">{title}</h4>
+                    <ul className="space-y-3">
+                      {links.map((item) => (
+                        <li key={item.label}>
+                          <a href={item.href} className="text-slate-400 hover:text-white flex items-center gap-1 group transition-colors text-sm font-medium">
+                            {item.label} <ArrowUpRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
-          ))}
-        </div>
-        
-        <div className="pt-12 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8">
-            <p className="text-gray-400 text-sm">© 2024 Vantage Technologies Inc.</p>
-            <div className="flex gap-6">
-              <a href="#" className="text-xs font-bold text-gray-400 hover:text-gray-900 uppercase tracking-widest">Status</a>
-              <a href="#" className="text-xs font-bold text-gray-400 hover:text-gray-900 uppercase tracking-widest">Privacy</a>
-              <a href="#" className="text-xs font-bold text-gray-400 hover:text-gray-900 uppercase tracking-widest">Terms</a>
+
+            <div className="pt-7 border-t border-white/10 flex flex-col md:flex-row justify-between md:items-center gap-5">
+              <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
+                <p className="text-slate-400 text-sm">© 2026 compare_cart Technologies</p>
+                <div className="flex gap-6">
+                  <a href="#" className="text-xs font-bold text-slate-400 hover:text-white uppercase tracking-widest">Status</a>
+                  <a href="#" className="text-xs font-bold text-slate-400 hover:text-white uppercase tracking-widest">Privacy</a>
+                  <a href="#" className="text-xs font-bold text-slate-400 hover:text-white uppercase tracking-widest">Terms</a>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-200 uppercase tracking-widest">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                All Systems Operational
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-gray-900 uppercase tracking-widest">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            All Systems Operational
           </div>
         </div>
       </div>

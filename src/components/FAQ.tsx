@@ -11,37 +11,37 @@ import {
 
 const faqs = [
   {
-    q: "How does Vantage track prices?",
-    a: "Our proprietary AI engine scans over 50 major retailers every few minutes. We use advanced web scraping and API integrations to ensure you get the most accurate, real-time pricing data available."
+    q: "How does compare_cart track prices?",
+    a: "We scan supported stores regularly and refresh product prices throughout the day. You see a single comparison view with updated prices, coupons, and key buying details."
   },
   {
     q: "Is the browser extension safe to use?",
-    a: "Absolutely. We take privacy seriously. Our extension only activates on supported shopping sites and never collects personal data or browsing history outside of product pages."
+    a: "Yes. The extension runs only on supported shopping pages and does not track unrelated browsing activity. You stay in control of your alerts and saved products."
   },
   {
     q: "Can I track prices on international stores?",
-    a: "Currently, we support major retailers in India, USA, and UK. We are constantly adding new regions and stores to our network."
+    a: "We currently focus on major stores and keep adding support based on demand. If a store you use is missing, you can request it and we'll prioritize it."
   },
   {
     q: "How accurate are the price predictions?",
-    a: "Our AI models analyze years of historical data, seasonal trends, and upcoming sale events. While not 100% guaranteed, our predictions have an 85% accuracy rate in forecasting major price drops."
+    a: "Predictions are based on past price patterns, seasonality, and current trend signals. They are guidance, not guarantees, so you can make better timing decisions."
   },
   {
-    q: "Is Vantage free to use?",
-    a: "Yes! Our core features, including price tracking, alerts, and the browser extension, are completely free for all users. We may introduce premium features for power shoppers in the future."
+    q: "Is compare_cart free to use?",
+    a: "Yes. Core features like comparison, tracking, and alerts are free to use. Any future premium features will remain optional."
   }
 ];
 
 const FAQ = () => {
   return (
-    <section className="py-32 px-6">
+    <section id="faq" className="py-32 px-6">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-20">
           <h2 className="text-5xl font-bold tracking-tighter mb-4">
             Common <span className="text-gradient">Questions</span>
           </h2>
           <p className="text-lg text-gray-600">
-            Everything you need to know about the ultimate shopping companion.
+            Quick answers before you start saving.
           </p>
         </div>
 

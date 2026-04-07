@@ -5,8 +5,8 @@ import { motion } from 'framer-motion';
 import { Quote } from 'lucide-react';
 
 const reviews = [
-  { name: "Sarah J.", role: "Tech Enthusiast", text: "Vantage saved me ₹12,000 on my new MacBook. The price history graph is a game changer!", avatar: "https://i.pravatar.cc/150?u=sarah" },
-  { name: "Rahul M.", role: "Smart Shopper", text: "I used to check 5 tabs manually. Now I just use Vantage. It's faster and much more beautiful.", avatar: "https://i.pravatar.cc/150?u=rahul" },
+  { name: "Sarah J.", role: "Tech Enthusiast", text: "compare_cart saved me ₹12,000 on my new MacBook. The price history graph is a game changer!", avatar: "https://i.pravatar.cc/150?u=sarah" },
+  { name: "Rahul M.", role: "Smart Shopper", text: "I used to check 5 tabs manually. Now I just use compare_cart. It's faster and much more beautiful.", avatar: "https://i.pravatar.cc/150?u=rahul" },
   { name: "Elena K.", role: "Fashion Blogger", text: "The price alerts are so reliable. I got my dream sneakers at their lowest price ever.", avatar: "https://i.pravatar.cc/150?u=elena" },
   { name: "David W.", role: "Gadget Reviewer", text: "The UI is incredible. It feels like using a premium Apple product. Highly recommended.", avatar: "https://i.pravatar.cc/150?u=david" },
 ];

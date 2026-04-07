@@ -16,12 +16,14 @@ import Magnetic from '@/components/Magnetic';
 import InteractiveGrid from '@/components/InteractiveGrid';
 import LiveFeed from '@/components/LiveFeed';
 import ExtensionShowcase from '@/components/ExtensionShowcase';
+import Features from '@/components/Features';
+import HowItWorks from '@/components/HowItWorks';
+import ComparisonTable from '@/components/ComparisonTable';
 import TopTicker from '@/components/TopTicker';
 import AIAssistant from '@/components/AIAssistant';
 import QuickViewModal from '@/components/QuickViewModal';
 import ScrollToTop from '@/components/ScrollToTop';
 import FAQ from '@/components/FAQ';
-import { MadeWithDyad } from "@/components/made-with-dyad";
 
 const Index = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -58,11 +60,14 @@ const Index = () => {
           <Hero />
         </div>
 
-        <LiveFeed />
         <StoreCloud />
 
+        <section id="how-it-works">
+          <HowItWorks />
+        </section>
+
         {/* Core Comparison Section */}
-        <section className="max-w-7xl mx-auto px-6 py-20">
+        <section id="live-comparisons" className="max-w-7xl mx-auto px-6 py-20">
           <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6">
             <div className="max-w-xl">
               <motion.h2 
@@ -74,7 +79,7 @@ const Index = () => {
                 Live <span className="text-gradient">Comparisons</span>
               </motion.h2>
               <p className="text-lg text-gray-600">
-                Real-time results for "iPhone 15 Pro Max - 256GB Titanium"
+                Example comparison for "iPhone 15 Pro Max - 256GB" with live pricing snapshots.
               </p>
             </div>
           </div>
@@ -148,8 +153,8 @@ const Index = () => {
               <div>
                 <h3 className="text-3xl font-bold mb-4">Price Prediction</h3>
                 <p className="text-purple-100 leading-relaxed">
-                  Our AI predicts a <span className="font-bold text-white">15% drop</span> in the next 14 days. 
-                  We recommend waiting for the upcoming sale.
+                  Current trend indicates this product may drop by <span className="font-bold text-white">up to 15%</span> in the next 2 weeks.
+                  Set an alert and buy at your target price.
                 </p>
               </div>
               <Magnetic strength={0.3}>
@@ -164,45 +169,22 @@ const Index = () => {
           </div>
         </section>
 
+        <section id="features">
+          <Features />
+        </section>
+
+        <section id="comparison-table">
+          <ComparisonTable />
+        </section>
+
+        <LiveFeed />
+
         <ExtensionShowcase />
         <FAQ />
         <Newsletter />
-
-        {/* Final CTA */}
-        <section className="max-w-7xl mx-auto px-6 py-32">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="relative rounded-[4rem] overflow-hidden bg-gray-900 p-12 md:p-24 text-center"
-          >
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-            <div className="relative z-10">
-              <h2 className="text-5xl md:text-7xl font-bold text-white tracking-tighter mb-8">
-                Ready to save <span className="text-blue-400 italic">thousands?</span>
-              </h2>
-              <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
-                Join 2M+ smart shoppers who use Vantage to find the best deals every single day.
-              </p>
-              <div className="flex flex-col md:flex-row gap-4 justify-center">
-                <Magnetic strength={0.2}>
-                  <button className="px-10 py-5 rounded-2xl bg-white text-gray-900 font-bold text-lg hover:scale-105 transition-transform">
-                    Get Started for Free
-                  </button>
-                </Magnetic>
-                <Magnetic strength={0.2}>
-                  <button className="px-10 py-5 rounded-2xl glass text-white font-bold text-lg hover:bg-white/10 transition-all">
-                    Download Extension
-                  </button>
-                </Magnetic>
-              </div>
-            </div>
-          </motion.div>
-        </section>
       </main>
 
       <Footer />
-      <MadeWithDyad />
     </div>
   );
 };

@@ -8,7 +8,7 @@ const reviews = [
   {
     name: "Arjun K.",
     role: "Gadget Enthusiast",
-    content: "I was about to buy the PS5 at full price, but Vantage alerted me to a flash sale on Reliance Digital. Saved enough for two extra games!",
+    content: "I was about to buy the PS5 at full price, but compare_cart alerted me to a flash sale on Reliance Digital. Saved enough for two extra games!",
     savings: "₹6,500",
     product: "Sony PS5 Slim",
     avatar: "https://i.pravatar.cc/150?u=arjun",
@@ -26,7 +26,7 @@ const reviews = [
   {
     name: "Marcus T.",
     role: "Remote Developer",
-    content: "Vantage found a coupon code I didn't even know existed. The browser extension is pure magic. It just works in the background.",
+    content: "compare_cart found a coupon code I didn't even know existed. The browser extension is pure magic. It just works in the background.",
     savings: "₹12,000",
     product: "MacBook Air M3",
     avatar: "https://i.pravatar.cc/150?u=marcus",

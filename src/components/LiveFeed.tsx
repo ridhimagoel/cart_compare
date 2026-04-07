@@ -21,7 +21,7 @@ const LiveFeed = () => {
             <div className="w-4 h-4 bg-red-500 rounded-full relative" />
           </div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            Live Deal Radar <span className="text-gray-400 font-medium text-lg">| Global Feed</span>
+            Live Deal Radar <span className="text-gray-400 font-medium text-lg">| Recent tracked drops</span>
           </h2>
         </div>
 

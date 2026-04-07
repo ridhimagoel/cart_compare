@@ -25,7 +25,7 @@ const AIAssistant = () => {
                     <Bot className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="font-bold">Vantage AI</h4>
+                    <h4 className="font-bold">compare_cart AI</h4>
                     <div className="flex items-center gap-1.5 text-[10px] font-medium opacity-80">
                       <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                       Online & Ready to help

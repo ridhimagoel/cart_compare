@@ -6,7 +6,7 @@ import { Search, ShieldCheck, Sparkles, MousePointer2 } from 'lucide-react';
 
 const ExtensionShowcase = () => {
   return (
-    <section className="py-32 px-6">
+    <section id="extension" className="py-32 px-6">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
         <div className="order-2 lg:order-1">
           <div className="relative">
@@ -44,7 +44,7 @@ const ExtensionShowcase = () => {
                 </div>
               </div>
 
-              {/* Vantage Extension Popup */}
+              {/* compare_cart Extension Popup */}
               <motion.div
                 initial={{ x: 100, opacity: 0 }}
                 whileInView={{ x: 0, opacity: 1 }}
@@ -54,7 +54,7 @@ const ExtensionShowcase = () => {
               >
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-6 h-6 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-md rotate-12" />
-                  <span className="font-bold text-sm">Vantage AI</span>
+                  <span className="font-bold text-sm">compare_cart AI</span>
                 </div>
                 <div className="space-y-3">
                   <div className="p-3 bg-green-50 rounded-xl border border-green-100">
