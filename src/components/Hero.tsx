@@ -99,8 +99,8 @@ const Hero = () => {
               className="glass rounded-2xl px-5 py-4 border border-white/50 float-soft"
               style={{ animationDelay: `${i * 0.5}s` }}
             >
-              <p className="text-2xl font-bold text-gray-900">{item.value}</p>
-              <p className="text-xs uppercase tracking-widest text-gray-500 mt-1">{item.label}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{item.value}</p>
+              <p className="mt-1 text-xs uppercase tracking-widest text-gray-500 dark:text-slate-300">{item.label}</p>
             </div>
           ))}
         </motion.div>

@@ -12,7 +12,7 @@ const stores = [
 
 const StoreCloud = () => {
   return (
-    <section className="py-20 overflow-hidden bg-white/20">
+    <section className="py-20 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16">
           <p className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4">Supported Everywhere</p>

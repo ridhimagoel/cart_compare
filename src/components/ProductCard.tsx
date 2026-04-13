@@ -34,12 +34,12 @@ const ProductCard = ({ platform, price, discount, logo, isLowest, delay = 0 }: P
         </div>
       )}
 
-      <div className="flex items-start justify-between mb-6">
-        <div className="w-12 h-12 rounded-2xl bg-white/80 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-500">
-          <img src={logo} alt={platform} className="w-8 h-8 object-contain" />
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="h-12 min-w-[74px] rounded-2xl bg-white/90 px-2.5 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-500">
+          <img src={logo} alt={platform} className="h-8 w-auto max-w-[64px] object-contain" />
         </div>
         <div className="text-right">
-          <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">{platform}</p>
+          <p className="text-sm font-medium text-slate-300 uppercase tracking-wider">{platform}</p>
           <div className="flex items-center gap-1 text-green-600 font-bold text-sm">
             <TrendingDown className="w-4 h-4" />
             {discount} OFF
@@ -48,16 +48,16 @@ const ProductCard = ({ platform, price, discount, logo, isLowest, delay = 0 }: P
       </div>
 
       <div className="mb-8">
-        <h3 className="text-4xl font-bold tracking-tighter text-gray-900">{price}</h3>
+        <h3 className="text-4xl font-bold tracking-tighter text-white">{price}</h3>
         <div className="flex items-center gap-2 mt-2">
           <div className="flex text-yellow-400">
             {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
           </div>
-          <span className="text-xs text-gray-500 font-medium">4.8 (2.4k reviews)</span>
+          <span className="text-xs text-slate-300 font-medium">4.8 (2.4k reviews)</span>
         </div>
       </div>
 
-      <button className="w-full py-4 rounded-2xl bg-white/50 border border-gray-200 font-bold text-gray-900 flex items-center justify-center gap-2 group-hover:bg-gray-900 group-hover:text-white transition-all duration-300">
+      <button className="w-full py-4 rounded-2xl bg-white/65 border border-white/60 font-bold text-slate-900 flex items-center justify-center gap-2 group-hover:bg-white group-hover:text-black transition-all duration-300">
         View Deal <ExternalLink className="w-4 h-4" />
       </button>
     </motion.div>

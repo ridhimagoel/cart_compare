@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import BackgroundBlobs from '@/components/BackgroundBlobs';
@@ -10,7 +11,6 @@ import PriceHistory from '@/components/PriceHistory';
 import StoreCloud from '@/components/StoreCloud';
 import Newsletter from '@/components/Newsletter';
 import Footer from '@/components/Footer';
-import SearchOverlay from '@/components/SearchOverlay';
 import PriceAlertModal from '@/components/PriceAlertModal';
 import Magnetic from '@/components/Magnetic';
 import InteractiveGrid from '@/components/InteractiveGrid';
@@ -26,10 +26,10 @@ import ScrollToTop from '@/components/ScrollToTop';
 import FAQ from '@/components/FAQ';
 
 const Index = () => {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const navigate = useNavigate();
 
   const handleProductClick = (product: any) => {
     setSelectedProduct(product);
@@ -44,7 +44,6 @@ const Index = () => {
       <Navbar />
       
       {/* Global Overlays */}
-      <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       <PriceAlertModal isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)} />
       <QuickViewModal 
         isOpen={isQuickViewOpen} 
@@ -56,7 +55,7 @@ const Index = () => {
 
       <main>
         {/* Hero with Search Trigger */}
-        <div onClick={() => setIsSearchOpen(true)} className="cursor-pointer">
+        <div onClick={() => navigate('/search')} className="cursor-pointer">
           <Hero />
         </div>
 
@@ -78,8 +77,8 @@ const Index = () => {
               >
                 Live <span className="text-gradient">Comparisons</span>
               </motion.h2>
-              <p className="text-lg text-gray-600">
-                Example comparison for "iPhone 15 Pro Max - 256GB" with live pricing snapshots.
+              <p className="text-lg text-gray-600 dark:text-slate-300">
+                Example comparison for "iPhone 17 Pro Max - 256GB" with live pricing snapshots.
               </p>
             </div>
           </div>
@@ -88,17 +87,17 @@ const Index = () => {
             <div 
               className="product-card cursor-pointer"
               onClick={() => handleProductClick({
-                name: "iPhone 15 Pro Max",
-                price: "₹1,44,900",
+                name: "iPhone 17 Pro Max",
+                price: "₹1,59,900",
                 platform: "Amazon",
                 img: "https://images.unsplash.com/photo-1696446701796-da61225697cc?w=800&q=80"
               })}
             >
               <ProductCard 
                 platform="Amazon" 
-                price="₹1,44,900" 
-                discount="12%" 
-                logo="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg"
+                price="₹1,59,900" 
+                discount="9%" 
+                logo="/stores/amazon.svg"
                 isLowest
                 delay={0.1}
               />
@@ -106,34 +105,34 @@ const Index = () => {
             <div 
               className="product-card cursor-pointer"
               onClick={() => handleProductClick({
-                name: "iPhone 15 Pro Max",
-                price: "₹1,48,900",
+                name: "iPhone 17 Pro Max",
+                price: "₹1,62,990",
                 platform: "Flipkart",
                 img: "https://images.unsplash.com/photo-1696446701796-da61225697cc?w=800&q=80"
               })}
             >
               <ProductCard 
                 platform="Flipkart" 
-                price="₹1,48,900" 
-                discount="8%" 
-                logo="https://upload.wikimedia.org/wikipedia/commons/7/7a/Flipkart_logo.svg"
+                price="₹1,62,990" 
+                discount="7%" 
+                logo="/stores/flipkart.svg"
                 delay={0.2}
               />
             </div>
             <div 
               className="product-card cursor-pointer"
               onClick={() => handleProductClick({
-                name: "iPhone 15 Pro Max",
-                price: "₹1,52,900",
-                platform: "Reliance Digital",
+                name: "iPhone 17 Pro Max",
+                price: "₹1,64,499",
+                platform: "Myntra",
                 img: "https://images.unsplash.com/photo-1696446701796-da61225697cc?w=800&q=80"
               })}
             >
               <ProductCard 
-                platform="Reliance Digital" 
-                price="₹1,52,900" 
+                platform="Myntra" 
+                price="₹1,64,499" 
                 discount="5%" 
-                logo="https://upload.wikimedia.org/wikipedia/commons/b/b8/Reliance_Digital_logo.svg"
+                logo="/stores/myntra.svg"
                 delay={0.3}
               />
             </div>

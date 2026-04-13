@@ -1,12 +1,21 @@
 <svg width="260" height="80" viewBox="0 0 260 80" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="260" height="80" rx="16" fill="white"/>
-  <path d="M22 56L34 22H42L54 44L66 22H74L62 56H54L42 35L30 56H22Z" fill="url(#paint0_linear)"/>
-  <text x="86" y="47" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#1F2937">Myntra</text>
+
+  <!-- Myntra-style multicolor M mark -->
+  <path d="M23 56L33 24H41L49 40L57 24H65L55 56H48L41 42L34 56H23Z" fill="url(#myntraGradA)"/>
+  <path d="M48 56L57 24H65L56 56H48Z" fill="url(#myntraGradB)"/>
+
+  <text x="82" y="48" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700" fill="#1F2937">Myntra</text>
+
   <defs>
-    <linearGradient id="paint0_linear" x1="22" y1="22" x2="74" y2="56" gradientUnits="userSpaceOnUse">
+    <linearGradient id="myntraGradA" x1="23" y1="24" x2="65" y2="56" gradientUnits="userSpaceOnUse">
       <stop stop-color="#FF3F6C"/>
-      <stop offset="0.55" stop-color="#FF6A00"/>
+      <stop offset="0.55" stop-color="#FF7A00"/>
       <stop offset="1" stop-color="#8A2BE2"/>
+    </linearGradient>
+    <linearGradient id="myntraGradB" x1="48" y1="24" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F72585"/>
+      <stop offset="1" stop-color="#7209B7"/>
     </linearGradient>
   </defs>
 </svg>

@@ -20,8 +20,8 @@ const LiveFeed = () => {
             <div className="w-4 h-4 bg-red-500 rounded-full animate-ping absolute inset-0" />
             <div className="w-4 h-4 bg-red-500 rounded-full relative" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            Live Deal Radar <span className="text-gray-400 font-medium text-lg">| Recent tracked drops</span>
+          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-900 dark:text-white">
+            Live Deal Radar <span className="text-gray-500 dark:text-slate-300 font-medium text-lg">| Recent tracked drops</span>
           </h2>
         </div>
 
@@ -33,21 +33,21 @@ const LiveFeed = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="glass p-4 rounded-3xl flex items-center gap-4 group hover:bg-white/60 transition-all cursor-pointer"
+              className="glass p-4 rounded-3xl flex items-center gap-4 group hover:bg-white/60 dark:hover:bg-white/10 transition-all cursor-pointer"
             >
               <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 border border-gray-100">
                 <img src={deal.img} alt={deal.item} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-gray-900 truncate">{deal.item}</h4>
-                <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+                <h4 className="truncate font-bold text-slate-900 dark:text-white">{deal.item}</h4>
+                <div className="flex items-center gap-2 text-xs font-medium text-gray-600 dark:text-slate-300">
                   <Globe className="w-3 h-3" /> {deal.store} • {deal.time}
                 </div>
-                <div className="mt-1 flex items-center gap-1 text-green-600 font-bold text-sm">
+                <div className="mt-1 flex items-center gap-1 text-green-600 dark:text-emerald-400 font-bold text-sm">
                   <ArrowDown className="w-3 h-3" /> {deal.drop} drop
                 </div>
               </div>
-              <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-gray-900 group-hover:text-white transition-colors">
+              <div className="w-8 h-8 rounded-full bg-white/90 text-slate-700 flex items-center justify-center group-hover:bg-gray-900 group-hover:text-white transition-colors">
                 <Zap className="w-4 h-4" />
               </div>
             </motion.div>

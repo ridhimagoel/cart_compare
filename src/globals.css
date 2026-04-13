@@ -65,6 +65,23 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .smart-more-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(120deg, #6aa8ff 0%, #8a7dff 35%, #c77dff 65%, #ff72c6 100%);
+  }
+
+  .smart-more-dots {
+    background-image: radial-gradient(circle at center, rgba(148, 163, 184, 0.22) 1.25px, transparent 1.25px);
+    background-size: 28px 28px;
+  }
+
+  .neon-violet-ring {
+    box-shadow:
+      0 0 0 1px rgba(167, 139, 250, 0.25),
+      0 0 0 6px rgba(167, 139, 250, 0.08),
+      0 12px 40px rgba(139, 92, 246, 0.2);
+  }
 }
 
 body {
@@ -132,4 +149,37 @@ body {
 .group:hover .how-step-card::before {
   opacity: 1;
   animation: effortless-border-flow 2.6s ease-in-out 1;
+}
+
+/* Global dark-mode readability boost */
+.dark .text-gray-900 {
+  color: rgb(248 250 252);
+}
+
+.dark .text-gray-800 {
+  color: rgb(226 232 240);
+}
+
+.dark .text-gray-700 {
+  color: rgb(203 213 225);
+}
+
+.dark .text-gray-600 {
+  color: rgb(186 199 219);
+}
+
+.dark .text-gray-500 {
+  color: rgb(165 180 205);
+}
+
+.dark .text-gray-400 {
+  color: rgb(148 163 184);
+}
+
+.dark .hover\:text-gray-900:hover {
+  color: rgb(255 255 255);
+}
+
+.dark .placeholder\:text-gray-400::placeholder {
+  color: rgb(148 163 184);
 }

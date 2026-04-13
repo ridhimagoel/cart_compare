@@ -34,9 +34,9 @@ const Footer = () => {
   return (
     <footer className="relative pt-14 pb-10 px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="relative overflow-hidden rounded-[2.5rem] border border-white/15 bg-gradient-to-br from-slate-900 via-[#111a2e] to-slate-800 text-white shadow-[0_20px_70px_rgba(15,23,42,0.35)]">
-          <div className="pointer-events-none absolute -top-24 -right-20 w-72 h-72 bg-blue-500/18 blur-3xl rounded-full" />
-          <div className="pointer-events-none absolute -bottom-24 -left-16 w-72 h-72 bg-purple-500/18 blur-3xl rounded-full" />
+        <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.18),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.14),transparent_34%),linear-gradient(120deg,rgba(15,23,42,0.92),rgba(2,6,23,0.96))] text-white shadow-[0_20px_70px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+          <div className="pointer-events-none absolute -top-24 -right-20 h-72 w-72 rounded-full bg-purple-500/12 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
 
           <div className="relative p-8 md:p-12 lg:p-14">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mb-12">

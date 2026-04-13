@@ -4,6 +4,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Search, BarChart, BellRing, ArrowUpRight, Clock3 } from 'lucide-react';
 
+const DEMO_VIDEO_SRC = '/videos/search-demo.mp4';
+
 const steps = [
   {
     title: "Search or Paste Link",
@@ -35,8 +37,10 @@ const steps = [
 ];
 
 const HowItWorks = () => {
+  const [videoFailed, setVideoFailed] = React.useState(false);
+
   return (
-    <section className="py-32 px-6 bg-white/30 relative overflow-hidden">
+    <section className="py-32 px-6 relative overflow-hidden">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-20">
           <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-100 text-xs font-bold tracking-widest uppercase text-purple-700 mb-6">
@@ -45,15 +49,12 @@ const HowItWorks = () => {
           <h2 className="text-5xl md:text-6xl font-bold tracking-tighter mb-6">
             Shopping made <span className="italic text-gradient">simpler.</span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-slate-300 max-w-2xl mx-auto">
             Three simple steps to ensure you never overpay again.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
-          {/* Connecting Line */}
-          <div className="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-gray-200 to-transparent -translate-y-1/2 -z-10" />
-          
           {steps.map((step, i) => (
             <motion.div
               key={step.title}
@@ -64,34 +65,34 @@ const HowItWorks = () => {
               transition={{ delay: i * 0.2 }}
               className="group relative"
             >
-              <div className="how-step-card glass rounded-[2.2rem] p-8 h-full hover:bg-white/70 hover:shadow-2xl hover:shadow-purple-200/30 transition-all duration-500 relative overflow-hidden">
-                <div className="pointer-events-none absolute inset-0 rounded-[2.2rem] opacity-0 group-hover:opacity-100 group-hover:animate-[pulse_2.5s_ease-in-out_1] bg-gradient-to-r from-blue-300/15 via-purple-300/25 to-pink-300/15" />
+              <div className="how-step-card rounded-[2.2rem] p-8 h-full border border-white/15 bg-[linear-gradient(120deg,rgba(8,17,40,0.94),rgba(5,9,24,0.96))] shadow-[0_20px_60px_rgba(2,6,23,0.45)] transition-all duration-500 relative overflow-hidden group-hover:border-purple-300/40 group-hover:shadow-[0_24px_80px_rgba(124,58,237,0.22)]">
+                <div className="pointer-events-none absolute inset-0 rounded-[2.2rem] opacity-0 group-hover:opacity-100 group-hover:animate-[pulse_2.5s_ease-in-out_1] bg-gradient-to-r from-blue-400/8 via-purple-400/12 to-pink-400/8" />
 
                 <div className="flex items-start justify-between mb-8">
                   <div className={`w-20 h-20 rounded-[1.4rem] ${step.bg} flex items-center justify-center relative transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6`}>
                     <step.icon className={`w-9 h-9 ${step.color}`} />
-                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center text-sm font-bold text-gray-500">
+                    <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center text-sm font-bold text-slate-500">
                       0{i + 1}
                     </div>
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                  <span className="px-3 py-1 rounded-full bg-white/15 text-xs font-bold text-slate-200 border border-white/20">
                     {step.eta}
                   </span>
                 </div>
 
-                <h3 className="text-2xl font-bold mb-3">{step.title}</h3>
-                <p className="text-gray-600 leading-relaxed mb-6">{step.desc}</p>
+                <h3 className="text-2xl font-bold text-white mb-3">{step.title}</h3>
+                <p className="text-slate-300 leading-relaxed mb-6">{step.desc}</p>
 
                 <div className="space-y-2 mb-6">
                   {step.bullets.map((b) => (
-                    <div key={b} className="flex items-center gap-2 text-sm text-gray-600">
+                    <div key={b} className="flex items-center gap-2 text-sm text-slate-300">
                       <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                       <span>{b}</span>
                     </div>
                   ))}
                 </div>
 
-                <button className="w-full h-11 rounded-xl bg-gray-900 text-white font-semibold flex items-center justify-center gap-2 hover:bg-black transition-colors">
+                <button className="w-full h-11 rounded-xl bg-[#081a38] text-white border border-white/15 font-semibold flex items-center justify-center gap-2 hover:bg-[#0e2952] transition-colors">
                   Try This Step <ArrowUpRight className="w-4 h-4" />
                 </button>
               </div>
@@ -104,11 +105,29 @@ const HowItWorks = () => {
             <h3 className="text-2xl md:text-3xl font-bold tracking-tight">What you get in every comparison</h3>
             <p className="text-gray-600 mt-2">Clear pricing, smart suggestions, and all key details in one place.</p>
           </div>
-          <div className="w-full aspect-video rounded-[2rem] border-2 border-dashed border-purple-300/70 bg-gradient-to-br from-purple-50/60 to-blue-50/60 flex items-center justify-center">
-            <div className="text-center px-6">
-              <p className="text-sm font-bold uppercase tracking-widest text-purple-600">Coming Soon: Guided Demo</p>
-              <p className="text-gray-500 mt-2">A short walkthrough video will be added here to show the complete flow.</p>
-            </div>
+          <div className="w-full aspect-video overflow-hidden rounded-[2rem] border border-white/20 bg-black/30">
+            {videoFailed ? (
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-50/60 to-blue-50/60">
+                <div className="px-6 text-center">
+                  <p className="text-sm font-bold uppercase tracking-widest text-purple-700">Upload Required</p>
+                  <p className="mt-2 text-gray-600 dark:text-slate-300">
+                    Add your video at <span className="font-semibold">public/videos/search-demo.mp4</span> and refresh.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <video
+                className="h-full w-full object-cover"
+                controls
+                muted
+                playsInline
+                preload="metadata"
+                poster="/brand/compare-cart-mark.svg"
+                onError={() => setVideoFailed(true)}
+              >
+                <source src={DEMO_VIDEO_SRC} type="video/mp4" />
+              </video>
+            )}
           </div>
         </div>
       </div>

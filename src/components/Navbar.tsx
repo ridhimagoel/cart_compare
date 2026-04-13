@@ -17,6 +17,7 @@ const Navbar = () => {
   }, []);
 
   const navItems = [
+    { label: 'Search', href: '/search' },
     { label: 'Features', href: '#features' },
     { label: 'How It Works', href: '#how-it-works' },
     { label: 'Live Comparisons', href: '#live-comparisons' },

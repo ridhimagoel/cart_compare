@@ -42,7 +42,7 @@ const trendingItems = [
 
 const TrendingDeals = () => {
   return (
-    <section className="py-32 px-6 bg-white/20">
+    <section className="py-32 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-end justify-between mb-16">
           <div>
