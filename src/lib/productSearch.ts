@@ -2,6 +2,15 @@ export interface ProductItem {
   title: string;
   price: number;
   priceText: string;
+  mrp?: number | null;
+  mrpText?: string | null;
+  discountPercent?: number | null;
+  savingsAmount?: number | null;
+  savingsText?: string | null;
+  couponText?: string | null;
+  dealType?: string | null;
+  offerText?: string | null;
+  hasOffer?: boolean;
   rating: string | null;
   image: string | null;
   url: string | null;

@@ -11,6 +11,15 @@ type AmazonScrapedItem = {
   title: string;
   price: number;
   priceText: string | null;
+  mrp: number | null;
+  mrpText: string | null;
+  discountPercent: number | null;
+  savingsAmount: number | null;
+  savingsText: string | null;
+  couponText: string | null;
+  dealType: string | null;
+  offerText: string | null;
+  hasOffer: boolean;
   rating: string | null;
   image: string | null;
   url: string | null;
@@ -116,6 +125,17 @@ function formatPriceInr(price: number) {
   return `₹${Math.round(price).toLocaleString("en-IN")}`;
 }
 
+function parseRatingToText(rawValue: string | null | undefined) {
+  if (!rawValue) return null;
+  const compact = rawValue.replace(/\s+/g, " ").trim();
+  const ratingMatch =
+    compact.match(/([1-5](?:\.\d)?\.?)\s*(?:\/\s*5|out\s*of\s*5|stars?|★)\b/i) ||
+    compact.match(/([1-5](?:\.\d)?\.?)\s*&\s*[\d,]+\s*reviews?\b/i);
+  if (!ratingMatch?.[1]) return null;
+  const normalized = ratingMatch[1].replace(/\.$/, "");
+  return `${normalized} out of 5 stars`;
+}
+
 function sanitizeFlipkartTitle(title: string) {
   const cleaned = title
     .replace(/^\d+\.\s*/, "")
@@ -124,8 +144,10 @@ function sanitizeFlipkartTitle(title: string) {
     .replace(/add\s*to\s*compare/gi, "")
     .replace(/\b\d+(?:,\d+)*\s*ratings?\s*&\s*\d+(?:,\d+)*\s*reviews?\b/gi, "")
     .replace(/\b\d+(?:\.\d+)?\s*&\s*\d+(?:,\d+)*\s*reviews?\b/gi, "")
+    .replace(/\b\d(?:\.\d)?\.?\s*&\s*\d+(?:,\d+)*\s*reviews?\b/gi, "")
     .replace(/\b\d+(?:,\d+)*\s*ratings?\b/gi, "")
     .replace(/\b\d+(?:,\d+)*\s*reviews?\b/gi, "")
+    .replace(/\b\d(?:\.\d)?\s*(?:out\s*of\s*5|stars?|★)\b/gi, "")
     .replace(/\b\d+\s*gb\s*rom\b/gi, "")
     .replace(/\b\d+(?:\.\d+)?\s*cm\s*\([^)]*\)\b/gi, "")
     .replace(/\s{2,}/g, " ")
@@ -291,11 +313,38 @@ async function scrapeAmazon(query: string, limit = 24) {
           const wholeEl = card.querySelector(".a-price .a-price-whole");
           const fracEl = card.querySelector(".a-price .a-price-fraction");
           const offscreenPriceEl = card.querySelector(".a-price .a-offscreen");
+          const mrpOffscreenEl =
+            card.querySelector(".a-price.a-text-price .a-offscreen") ||
+            card.querySelector(".a-text-price .a-offscreen") ||
+            card.querySelector("[data-cy='price-recipe'] .a-text-price .a-offscreen");
           const imageEl = card.querySelector("img.s-image");
           const ratingEl = card.querySelector("span.a-icon-alt");
 
+          const dealBadgeCandidates = [
+            card.querySelector(".a-badge .a-badge-text")?.textContent,
+            card.querySelector("span[aria-label*='Deal']")?.textContent,
+            card.querySelector("span[class*='deal']")?.textContent,
+            card.querySelector("span[class*='Deal']")?.textContent,
+          ]
+            .map((t) => t?.trim() || "")
+            .filter((t) => t.length > 0);
+
+          const discountRawCandidates = [
+            card.querySelector(".savingsPercentage")?.textContent,
+            card.querySelector("span[class*='savingsPercentage']")?.textContent,
+            card.querySelector("span[class*='percent']")?.textContent,
+            ...Array.from(card.querySelectorAll("span") as any[]).map((el: any) => el.textContent),
+          ]
+            .map((t) => t?.trim() || "")
+            .filter((t) => /\d+\s*%\s*off|-\s*\d+\s*%/i.test(t));
+
+          const couponCandidates = Array.from(card.querySelectorAll("span") as any[])
+            .map((el: any) => (el.textContent || "").trim())
+            .filter((t) => /coupon|save\s*₹|extra\s*\d+%|bank offer|no cost emi|exchange offer/i.test(t));
+
           const rawLink = linkEl?.getAttribute("href") || null;
           const offscreenPrice = offscreenPriceEl?.textContent?.trim() || null;
+          const mrpText = mrpOffscreenEl?.textContent?.trim() || null;
           const whole = wholeEl?.textContent?.replace(/[^\d]/g, "") || "";
           const fraction = fracEl?.textContent?.replace(/[^\d]/g, "") || "00";
           const image = imageEl?.getAttribute("src") || null;
@@ -315,6 +364,39 @@ async function scrapeAmazon(query: string, limit = 24) {
 
           if (!title || !Number.isFinite(price)) return null;
 
+          const parsedMrp = mrpText ? Number(mrpText.replace(/[^\d.]/g, "")) : Number.NaN;
+          const mrp = Number.isFinite(parsedMrp) && parsedMrp > price ? parsedMrp : null;
+
+          const discountText = discountRawCandidates.find((t) => /\d+\s*%/i.test(t)) || null;
+          const discountFromText = discountText
+            ? Number((discountText.match(/(\d{1,3})\s*%/) || [])[1])
+            : Number.NaN;
+          const discountFromMrp = mrp ? Math.round(((mrp - price) / mrp) * 100) : Number.NaN;
+          const discountPercent = Number.isFinite(discountFromMrp)
+            ? discountFromMrp
+            : (Number.isFinite(discountFromText) ? discountFromText : null);
+
+          const savingsAmount = mrp && mrp > price ? Number((mrp - price).toFixed(2)) : null;
+          const savingsText = savingsAmount
+            ? `Save ₹${Math.round(savingsAmount).toLocaleString("en-IN")}`
+            : null;
+
+          const couponText = couponCandidates[0] || null;
+          const dealBadge = dealBadgeCandidates[0] || null;
+          const dealType =
+            dealBadge && /limited\s*time\s*deal/i.test(dealBadge)
+              ? "limited-time-deal"
+              : (dealBadge && /deal/i.test(dealBadge) ? "deal" : null);
+
+          const offerTextParts = [
+            dealBadge,
+            discountPercent ? `${discountPercent}% off` : null,
+            couponText,
+            savingsText,
+          ].filter(Boolean);
+          const offerText = offerTextParts.length ? offerTextParts.join(" • ") : null;
+          const hasOffer = Boolean(dealBadge || couponText || discountPercent || savingsAmount);
+
           const url = rawLink
             ? rawLink.startsWith("http")
               ? rawLink
@@ -327,6 +409,15 @@ async function scrapeAmazon(query: string, limit = 24) {
             title,
             price,
             priceText,
+            mrp,
+            mrpText,
+            discountPercent,
+            savingsAmount,
+            savingsText,
+            couponText,
+            dealType,
+            offerText,
+            hasOffer,
             rating,
             image,
             url,
@@ -743,6 +834,15 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
 
       const pageItems = await page.evaluate(() => {
         const doc = (globalThis as any).document;
+        const parseRating = (value: any) => {
+          const text = (value || "").toString().replace(/\s+/g, " ").trim();
+          if (!text) return null;
+          const match =
+            text.match(/([1-5](?:\.\d)?\.?)\s*(?:\/\s*5|out\s*of\s*5|stars?|★)\b/i) ||
+            text.match(/([1-5](?:\.\d)?\.?)\s*&\s*[\d,]+\s*reviews?\b/i);
+          return match?.[1]?.replace?.(/\.$/, "") || null;
+        };
+
         const parseDomCard = (current: any) => {
           const title =
             current?.querySelector?.("a[title]")?.getAttribute?.("title")?.trim?.() ||
@@ -757,9 +857,29 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
             current?.textContent?.match?.(/₹\s?[\d,]+(?:\.\d+)?/)?.[0] ||
             null;
 
+          const mrpText =
+            current?.querySelector?.("div.yRaY8j")?.textContent?.trim?.() ||
+            current?.querySelector?.("div._3I9_wc")?.textContent?.trim?.() ||
+            current?.querySelector?.("span.yRaY8j")?.textContent?.trim?.() ||
+            null;
+
+          const contextText = current?.textContent || "";
+
           const rating =
-            current?.querySelector?.("div.XQDdHH")?.textContent?.trim?.() ||
-            current?.querySelector?.("span._2_R_DZ")?.textContent?.trim?.() ||
+            parseRating(current?.querySelector?.("div.XQDdHH")?.textContent) ||
+            parseRating(current?.querySelector?.("span.XQDdHH")?.textContent) ||
+            parseRating(current?.querySelector?.("span._2_R_DZ")?.textContent) ||
+            parseRating(contextText) ||
+            null;
+
+          const discountText =
+            current?.querySelector?.("div.UkUFwK")?.textContent?.trim?.() ||
+            current?.querySelector?.("div._3Ay6Sb span")?.textContent?.trim?.() ||
+            contextText.match(/\b\d{1,2}%\s*off\b/i)?.[0] ||
+            null;
+
+          const couponText =
+            contextText.match(/\b(?:bank offer|coupon|extra\s*₹?\s*[\d,]+\s*off|exchange offer|no cost emi)\b[^\n\r•]*/i)?.[0]?.trim?.() ||
             null;
 
           const image =
@@ -778,6 +898,9 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
           return {
             title,
             priceText,
+            mrpText,
+            discountText,
+            couponText,
             rating,
             image,
             url: href ? (href.startsWith("http") ? href : `https://www.flipkart.com${href}`) : null,
@@ -786,7 +909,7 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
 
         const cardSelectors = "div[data-id], div[class*='slAVV4'], div._1AtVbE, article, li";
         const cards = Array.from(doc?.querySelectorAll?.(cardSelectors) || []) as any[];
-        const directItems = cards.map(parseDomCard).filter(Boolean) as Array<{ title: string; priceText: string; rating: string | null; image: string | null; url: string | null }>;
+        const directItems = cards.map(parseDomCard).filter(Boolean) as Array<{ title: string; priceText: string; mrpText?: string | null; discountText?: string | null; couponText?: string | null; rating: string | null; image: string | null; url: string | null }>;
 
         const anchorFallback = (Array.from(doc?.querySelectorAll?.("a[href*='/p/']") || []) as any[])
           .slice(0, 300)
@@ -797,7 +920,7 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
               anchor;
             return parseDomCard(container);
           })
-          .filter(Boolean) as Array<{ title: string; priceText: string; rating: string | null; image: string | null; url: string | null }>;
+          .filter(Boolean) as Array<{ title: string; priceText: string; mrpText?: string | null; discountText?: string | null; couponText?: string | null; rating: string | null; image: string | null; url: string | null }>;
 
         const anchorHeuristic = (Array.from(doc?.querySelectorAll?.("a[href*='/p/']") || []) as any[])
           .slice(0, 400)
@@ -824,6 +947,28 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
               container?.querySelector?.("div._30jeq3")?.textContent?.trim?.() ||
               null;
 
+            const mrpText =
+              container?.querySelector?.("div.yRaY8j")?.textContent?.trim?.() ||
+              container?.querySelector?.("div._3I9_wc")?.textContent?.trim?.() ||
+              contextText.match(/₹\s?[\d,]{2,}/g)?.[1] ||
+              null;
+
+            const rating =
+              parseRating(container?.querySelector?.("div.XQDdHH")?.textContent) ||
+              parseRating(container?.querySelector?.("span.XQDdHH")?.textContent) ||
+              parseRating(contextText) ||
+              null;
+
+            const discountText =
+              container?.querySelector?.("div.UkUFwK")?.textContent?.trim?.() ||
+              container?.querySelector?.("div._3Ay6Sb span")?.textContent?.trim?.() ||
+              contextText.match(/\b\d{1,2}%\s*off\b/i)?.[0] ||
+              null;
+
+            const couponText =
+              contextText.match(/\b(?:bank offer|coupon|extra\s*₹?\s*[\d,]+\s*off|exchange offer|no cost emi)\b[^\n\r•]*/i)?.[0]?.trim?.() ||
+              null;
+
             const image =
               container?.querySelector?.("img")?.getAttribute?.("src") ||
               container?.querySelector?.("img")?.getAttribute?.("data-src") ||
@@ -833,14 +978,17 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
             return {
               title,
               priceText,
-              rating: null,
+              mrpText,
+              discountText,
+              couponText,
+              rating,
               image,
               url: href.startsWith("http") ? href : `https://www.flipkart.com${href}`,
             };
           })
-          .filter(Boolean) as Array<{ title: string; priceText: string; rating: string | null; image: string | null; url: string | null }>;
+          .filter(Boolean) as Array<{ title: string; priceText: string; mrpText?: string | null; discountText?: string | null; couponText?: string | null; rating: string | null; image: string | null; url: string | null }>;
 
-        const jsonLdItems: Array<{ title: string; priceText: string; rating: string | null; image: string | null; url: string | null }> = [];
+        const jsonLdItems: Array<{ title: string; priceText: string; mrpText?: string | null; discountText?: string | null; couponText?: string | null; rating: string | null; image: string | null; url: string | null }> = [];
         const scripts = Array.from(doc?.querySelectorAll?.("script[type='application/ld+json']") || []) as any[];
         for (const script of scripts) {
           const raw = script?.textContent?.trim?.();
@@ -857,12 +1005,16 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
                 const url = item?.url || null;
                 const priceRaw = item?.offers?.price ?? item?.offers?.lowPrice ?? null;
                 const priceText = priceRaw != null ? `₹${String(priceRaw)}` : null;
+                const mrpRaw = item?.offers?.highPrice ?? item?.offers?.priceSpecification?.price ?? null;
+                const mrpText = mrpRaw != null ? `₹${String(mrpRaw)}` : null;
+                const ratingRaw = item?.aggregateRating?.ratingValue ?? item?.reviewRating?.ratingValue ?? null;
                 const image = Array.isArray(item?.image) ? item.image[0] : item?.image || null;
                 if (!title || !priceText) continue;
                 jsonLdItems.push({
                   title: String(title),
                   priceText,
-                  rating: null,
+                  mrpText,
+                  rating: parseRating(ratingRaw),
                   image: typeof image === "string" ? image : image?.url || null,
                   url: url ? (String(url).startsWith("http") ? String(url) : `https://www.flipkart.com${String(url)}`) : null,
                 });
@@ -874,22 +1026,49 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
         }
 
         return [...directItems, ...anchorFallback, ...anchorHeuristic, ...jsonLdItems];
-      }) as Array<{ title: string; priceText: string; rating: string | null; image: string | null; url: string | null } | null>;
+      }) as Array<{ title: string; priceText: string; mrpText?: string | null; discountText?: string | null; couponText?: string | null; rating: string | null; image: string | null; url: string | null } | null>;
 
       const validPageItems = pageItems.filter(
-        (item): item is { title: string; priceText: string; rating: string | null; image: string | null; url: string | null } => Boolean(item)
+        (item): item is { title: string; priceText: string; mrpText?: string | null; discountText?: string | null; couponText?: string | null; rating: string | null; image: string | null; url: string | null } => Boolean(item)
       );
 
       for (const item of validPageItems) {
         const price = parsePriceToNumber(item.priceText);
         if (!Number.isFinite(price)) continue;
+        const parsedMrp = parsePriceToNumber(item.mrpText || null);
+        const mrp = Number.isFinite(parsedMrp) && parsedMrp > price ? parsedMrp : null;
+        const discountFromText = Number((item.discountText || "").match(/(\d{1,2})\s*%/)?.[1] || Number.NaN);
+        const discountFromMrp = mrp ? Math.round(((mrp - price) / mrp) * 100) : Number.NaN;
+        const discountPercent = Number.isFinite(discountFromMrp)
+          ? discountFromMrp
+          : (Number.isFinite(discountFromText) ? discountFromText : null);
+        const savingsAmount = mrp && mrp > price ? Number((mrp - price).toFixed(2)) : null;
+        const savingsText = savingsAmount
+          ? `Save ₹${Math.round(savingsAmount).toLocaleString("en-IN")}`
+          : null;
+        const couponText = item.couponText || null;
+        const offerText = [
+          discountPercent ? `${discountPercent}% off` : null,
+          couponText,
+          savingsText,
+        ].filter(Boolean).join(" • ") || null;
+        const hasOffer = Boolean(discountPercent || couponText || savingsAmount);
         const cleanedTitle = sanitizeFlipkartTitle(item.title);
         const normalizedImage = item.image?.startsWith("//") ? `https:${item.image}` : item.image;
         collectedItems.push({
           title: cleanedTitle || item.title,
           price,
           priceText: formatPriceInr(price) || item.priceText,
-          rating: item.rating,
+          mrp,
+          mrpText: item.mrpText || (mrp ? formatPriceInr(mrp) : null),
+          discountPercent,
+          savingsAmount,
+          savingsText,
+          couponText,
+          dealType: null,
+          offerText,
+          hasOffer,
+          rating: parseRatingToText(item.rating) || parseRatingToText(item.title),
           image: normalizedImage,
           url: normalizeFlipkartProductUrl(item.url),
           store: "Flipkart",
@@ -1437,7 +1616,7 @@ export default defineConfig(() => ({
               .filter((store): store is StoreKey => allowedStores.includes(store as StoreKey));
             const stores: StoreKey[] = requestedStores.length ? requestedStores : ["amazon", "flipkart", "myntra", "ajio"];
 
-            const key = `compare:v1:${query.toLowerCase()}:limit:${limit}:stores:${stores.join("|")}`;
+            const key = `compare:v2:${query.toLowerCase()}:limit:${limit}:stores:${stores.join("|")}`;
             const cached = scrapeCache.get(key);
             const now = Date.now();
 

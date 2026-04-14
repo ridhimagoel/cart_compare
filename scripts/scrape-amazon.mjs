@@ -49,11 +49,38 @@ async function run() {
           const wholeEl = card.querySelector('.a-price .a-price-whole');
           const fracEl = card.querySelector('.a-price .a-price-fraction');
           const offscreenPriceEl = card.querySelector('.a-price .a-offscreen');
+          const mrpOffscreenEl =
+            card.querySelector('.a-price.a-text-price .a-offscreen') ||
+            card.querySelector('.a-text-price .a-offscreen') ||
+            card.querySelector("[data-cy='price-recipe'] .a-text-price .a-offscreen");
           const imageEl = card.querySelector('img.s-image');
           const ratingEl = card.querySelector('span.a-icon-alt');
 
+          const dealBadgeCandidates = [
+            card.querySelector('.a-badge .a-badge-text')?.textContent,
+            card.querySelector("span[aria-label*='Deal']")?.textContent,
+            card.querySelector("span[class*='deal']")?.textContent,
+            card.querySelector("span[class*='Deal']")?.textContent,
+          ]
+            .map((t) => t?.trim() || '')
+            .filter((t) => t.length > 0);
+
+          const discountRawCandidates = [
+            card.querySelector('.savingsPercentage')?.textContent,
+            card.querySelector("span[class*='savingsPercentage']")?.textContent,
+            card.querySelector("span[class*='percent']")?.textContent,
+            ...Array.from(card.querySelectorAll('span')).map((el) => el.textContent),
+          ]
+            .map((t) => t?.trim() || '')
+            .filter((t) => /\d+\s*%\s*off|-\s*\d+\s*%/i.test(t));
+
+          const couponCandidates = Array.from(card.querySelectorAll('span'))
+            .map((el) => (el.textContent || '').trim())
+            .filter((t) => /coupon|save\s*₹|extra\s*\d+%|bank offer|no cost emi|exchange offer/i.test(t));
+
           const rawLink = linkEl?.getAttribute('href') || null;
           const offscreenPrice = offscreenPriceEl?.textContent?.trim() || null;
+          const mrpText = mrpOffscreenEl?.textContent?.trim() || null;
           const whole = wholeEl?.textContent?.replace(/[^\d]/g, '') || '';
           const fraction = fracEl?.textContent?.replace(/[^\d]/g, '') || '00';
           const image = imageEl?.getAttribute('src') || null;
@@ -73,6 +100,39 @@ async function run() {
 
           if (!title || !Number.isFinite(price)) return null;
 
+          const parsedMrp = mrpText ? Number(mrpText.replace(/[^\d.]/g, '')) : Number.NaN;
+          const mrp = Number.isFinite(parsedMrp) && parsedMrp > price ? parsedMrp : null;
+
+          const discountText = discountRawCandidates.find((t) => /\d+\s*%/i.test(t)) || null;
+          const discountFromText = discountText
+            ? Number((discountText.match(/(\d{1,3})\s*%/) || [])[1])
+            : Number.NaN;
+          const discountFromMrp = mrp ? Math.round(((mrp - price) / mrp) * 100) : Number.NaN;
+          const discountPercent = Number.isFinite(discountFromMrp)
+            ? discountFromMrp
+            : (Number.isFinite(discountFromText) ? discountFromText : null);
+
+          const savingsAmount = mrp && mrp > price ? Number((mrp - price).toFixed(2)) : null;
+          const savingsText = savingsAmount
+            ? `Save ₹${Math.round(savingsAmount).toLocaleString('en-IN')}`
+            : null;
+
+          const couponText = couponCandidates[0] || null;
+          const dealBadge = dealBadgeCandidates[0] || null;
+          const dealType =
+            dealBadge && /limited\s*time\s*deal/i.test(dealBadge)
+              ? 'limited-time-deal'
+              : (dealBadge && /deal/i.test(dealBadge) ? 'deal' : null);
+
+          const offerTextParts = [
+            dealBadge,
+            discountPercent ? `${discountPercent}% off` : null,
+            couponText,
+            savingsText,
+          ].filter(Boolean);
+          const offerText = offerTextParts.length ? offerTextParts.join(' • ') : null;
+          const hasOffer = Boolean(dealBadge || couponText || discountPercent || savingsAmount);
+
           const url = rawLink
             ? rawLink.startsWith('http')
               ? rawLink
@@ -85,6 +145,15 @@ async function run() {
             title,
             price,
             priceText,
+            mrp,
+            mrpText,
+            discountPercent,
+            savingsAmount,
+            savingsText,
+            couponText,
+            dealType,
+            offerText,
+            hasOffer,
             rating,
             image,
             url,
@@ -390,6 +459,7 @@ async function run() {
     const exactItems = exactRanked.map(stripMeta);
     const relatedItems = relatedRanked.map(stripMeta);
     const products = (exactItems.length > 0 ? exactItems : relatedItems).slice(0, resultLimit);
+    const offerCount = products.filter((item) => item.hasOffer).length;
 
     console.log(JSON.stringify({
       ok: true,
@@ -402,6 +472,7 @@ async function run() {
       exactItems,
       relatedItems,
       count: products.length,
+      offerCount,
       items: products,
     }, null, 2));
   } catch (error) {

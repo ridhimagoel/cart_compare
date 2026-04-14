@@ -228,6 +228,23 @@ const SearchPage = () => {
           <div className="mt-3 flex items-end justify-between gap-2">
             <div>
               <p className="text-2xl font-black text-slate-900 dark:text-white">{item.priceText}</p>
+              {(item.mrpText || item.discountPercent || item.offerText) && (
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                  {item.mrpText && item.mrp && item.mrp > item.price && (
+                    <span className="text-slate-400 line-through">{item.mrpText}</span>
+                  )}
+                  {item.discountPercent ? (
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700">
+                      {item.discountPercent}% OFF
+                    </span>
+                  ) : null}
+                </div>
+              )}
+              {item.offerText && (
+                <p className="mt-1 line-clamp-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                  {item.offerText}
+                </p>
+              )}
               <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300">
                 <span>{item.rating || "Rating unavailable"}</span>
                 {isUnavailableItem(item) && <span className="text-[10px] font-medium text-slate-400">Unavailable</span>}
