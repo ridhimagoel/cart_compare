@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink, TrendingDown, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import PurchaseRecorder from './PurchaseRecorder';
 
 interface ProductCardProps {
   platform: string;
@@ -60,6 +61,10 @@ const ProductCard = ({ platform, price, discount, logo, isLowest, delay = 0 }: P
       <button className="w-full py-4 rounded-2xl bg-white/65 border border-white/60 font-bold text-slate-900 flex items-center justify-center gap-2 group-hover:bg-white group-hover:text-black transition-all duration-300">
         View Deal <ExternalLink className="w-4 h-4" />
       </button>
+      <PurchaseRecorder
+        productName={platform}
+        price={parseFloat(price.replace(/[^\d.]/g, ''))}
+      />
     </motion.div>
   );
 };

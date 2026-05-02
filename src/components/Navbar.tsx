@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from './ThemeToggle';
+import ExpenditureNav from './ExpenditureNav';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -62,6 +63,7 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <ExpenditureNav />
             <ThemeToggle />
             <Button className="hidden sm:inline-flex rounded-full bg-gray-900 text-white hover:bg-black px-5">
               Get Started <ArrowUpRight className="w-4 h-4 ml-1" />

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { ProductItem } from "@/lib/productSearch";
+import PurchaseRecorderForSearch from '../components/PurchaseRecorderForSearch';
 
 type SearchMeta = {
   store?: string;
@@ -257,6 +258,10 @@ const SearchPage = () => {
           </div>
         </div>
       </div>
+      <PurchaseRecorderForSearch
+        productName={item.title}
+        price={item.price}
+      />
     </motion.a>
   );
 
