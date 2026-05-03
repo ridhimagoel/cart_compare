@@ -18,6 +18,7 @@ import LiveFeed from '@/components/LiveFeed';
 import ExtensionShowcase from '@/components/ExtensionShowcase';
 import Features from '@/components/Features';
 import HowItWorks from '@/components/HowItWorks';
+import WatchlistPreview from '@/components/WatchlistPreview';
 import ComparisonTable from '@/components/ComparisonTable';
 import TopTicker from '@/components/TopTicker';
 import AIAssistant from '@/components/AIAssistant';
@@ -63,6 +64,10 @@ const Index = () => {
 
         <section id="how-it-works">
           <HowItWorks />
+        </section>
+
+        <section id="watchlist">
+          <WatchlistPreview />
         </section>
 
         {/* Core Comparison Section */}

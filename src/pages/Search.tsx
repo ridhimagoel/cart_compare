@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
@@ -29,15 +29,61 @@ type SearchMeta = {
 };
 
 const SearchPage = () => {
+  const FALLBACK_SAMPLE: ProductItem[] = [
+    {
+      title: "Apple iPhone 15 (128GB) - Fallback sample",
+      price: 74900,
+      priceText: "₹74,900",
+      mrp: null,
+      mrpText: null,
+      discountPercent: null,
+      savingsAmount: null,
+      savingsText: null,
+      couponText: null,
+      dealType: null,
+      offerText: null,
+      hasOffer: false,
+      rating: null,
+      image: null,
+      url: null,
+      store: "Amazon India",
+      source: "amazon",
+    } as ProductItem,
+    {
+      title: "Apple iPhone 15 Pro (256GB) - Fallback sample",
+      price: 129900,
+      priceText: "₹1,29,900",
+      mrp: null,
+      mrpText: null,
+      discountPercent: null,
+      savingsAmount: null,
+      savingsText: null,
+      couponText: null,
+      dealType: null,
+      offerText: null,
+      hasOffer: false,
+      rating: null,
+      image: null,
+      url: null,
+      store: "Flipkart",
+      source: "flipkart",
+    } as ProductItem,
+  ];
   const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<ProductItem[]>([]);
   const [exactResults, setExactResults] = useState<ProductItem[]>([]);
   const [relatedResults, setRelatedResults] = useState<ProductItem[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [exactCount, setExactCount] = useState<number>(0);
+  const [relatedCount, setRelatedCount] = useState<number>(0);
   const [meta, setMeta] = useState<SearchMeta>({});
   const [activeStoreFilter, setActiveStoreFilter] = useState<string>("all");
   const [sortMode, setSortMode] = useState<"smart" | "priceLow" | "priceHigh">("smart");
+  const [rawResponse, setRawResponse] = useState<any>(null);
+  const [lastFetchUrl, setLastFetchUrl] = useState<string | null>(null);
+  const [lastFetchError, setLastFetchError] = useState<string | null>(null);
 
   const trimmedQuery = useMemo(() => query.trim(), [query]);
   const normalizedQuery = useMemo(
@@ -49,6 +95,7 @@ const SearchPage = () => {
     [trimmedQuery]
   );
   const totalResults = results.length;
+
   const exactRatio = totalResults > 0 ? Math.round((exactResults.length / totalResults) * 100) : 0;
   const quickSearches = ["iphone 13", "iphone 14", "s24 ultra", "macbook air m3", "ps5", "running shoes"];
 
@@ -57,6 +104,9 @@ const SearchPage = () => {
       setResults([]);
       setExactResults([]);
       setRelatedResults([]);
+      setTotalCount(0);
+      setExactCount(0);
+      setRelatedCount(0);
       setActiveStoreFilter("all");
       setError(null);
       setMeta({});
@@ -66,19 +116,68 @@ const SearchPage = () => {
 
     const controller = new AbortController();
     const timer = setTimeout(async () => {
-      try {
+        try {
         setIsLoading(true);
         setError(null);
+        setLastFetchError(null);
 
-        const res = await fetch(`/api/scrape/compare?q=${encodeURIComponent(trimmedQuery)}&limit=24&stores=amazon,flipkart,myntra,ajio`, {
-          signal: controller.signal,
-        });
+        let res: Response | null = null;
+        // Query all stores by default
+        const sameOriginUrl = `/api/scrape/compare?q=${encodeURIComponent(trimmedQuery)}&limit=24`;
+        setLastFetchUrl(sameOriginUrl);
+        try {
+          res = await fetch(sameOriginUrl, { signal: controller.signal });
+        } catch (err: any) {
+          // network error to same-origin; will try fallback to explicit scraper port
+          res = null;
+        }
+
+        if (!res || !res.ok) {
+          const apiBase = typeof window !== "undefined" ? `${window.location.protocol}//${window.location.hostname}:8080` : "http://localhost:8080";
+          const fallbackUrl = `${apiBase}/api/scrape/compare?q=${encodeURIComponent(trimmedQuery)}&limit=24`;
+          setLastFetchUrl(fallbackUrl);
+          try {
+            res = await fetch(fallbackUrl);
+            console.warn("Fell back to explicit scraper at :8080");
+          } catch (err: any) {
+            setLastFetchError(err?.message || String(err));
+            // both attempts failed
+            throw err;
+          }
+        }
+
         const data = await res.json();
+        setRawResponse(data);
 
         if (!res.ok || !data.ok) {
+          // If live scraping failed but we have no results, show a small fallback
+          const hasAnyItems = Array.isArray(data?.allScrapedItems) && data.allScrapedItems.length > 0 || Array.isArray(data?.items) && data.items.length > 0;
+          if (!hasAnyItems) {
+            setResults(FALLBACK_SAMPLE);
+            setExactResults([]);
+            setRelatedResults([]);
+            setTotalCount(FALLBACK_SAMPLE.length);
+            setExactCount(0);
+            setRelatedCount(0);
+            setMeta({
+              store: data.store || "fallback",
+              provider: data.provider || "fallback",
+              source: data.source || "fallback",
+              cached: true,
+              blocked: data.blocked,
+              effectiveQuery: data.effectiveQuery,
+              storeBreakdown: data.storeBreakdown || [],
+            });
+            setError("Live scraping failed — showing fallback sample results. Retry for live data.");
+            return;
+          }
+
           setResults([]);
           setExactResults([]);
           setRelatedResults([]);
+          setTotalCount(data.allScrapedCount || 0);
+          setExactCount(data.exactCount || 0);
+          setRelatedCount(data.relatedCount || 0);
           setMeta({
             store: data.store,
             provider: data.provider,
@@ -107,16 +206,24 @@ const SearchPage = () => {
         const merged: ProductItem[] = [...mergedBase].sort((a, b) => {
           const aExact = isExactLike(a, exactItems) ? 1 : 0;
           const bExact = isExactLike(b, exactItems) ? 1 : 0;
+
           if (aExact !== bExact) return bExact - aExact;
+
+          const aMatch = tokenMatchCount(a.title);
+          const bMatch = tokenMatchCount(b.title);
+          if (aMatch !== bMatch) return bMatch - aMatch;
+
           const aAccessory = queryLooksLikeDevice && isAccessoryLikeTitle(a.title) ? 1 : 0;
           const bAccessory = queryLooksLikeDevice && isAccessoryLikeTitle(b.title) ? 1 : 0;
           if (aAccessory !== bAccessory) return aAccessory - bAccessory;
           return a.price - b.price;
         });
-
         setExactResults(exactItems);
         setRelatedResults(relatedItems);
         setResults(merged);
+        setTotalCount(data.allScrapedCount || merged.length);
+        setExactCount(data.exactCount || exactItems.length);
+        setRelatedCount(data.relatedCount || relatedItems.length);
         setActiveStoreFilter("all");
         setMeta({
           store: data.store,
@@ -132,6 +239,9 @@ const SearchPage = () => {
         setResults([]);
         setExactResults([]);
         setRelatedResults([]);
+        setTotalCount(0);
+        setExactCount(0);
+        setRelatedCount(0);
         setError("Network issue while fetching live results.");
       } finally {
         setIsLoading(false);
@@ -154,6 +264,15 @@ const SearchPage = () => {
       title
     ) || /\b(compatible with|designed for|fit for|fits|works with)\b/i.test(title);
 
+    const tokenMatchCount = (title: string) => {
+      if (!normalizedQuery) return 0;
+      const t = title.toLowerCase();
+      const tokens = normalizedQuery.split(/\s+/).filter(Boolean);
+      let count = 0;
+      for (const tok of tokens) if (t.includes(tok)) count++;
+      return count;
+    };
+
   const isExactLike = (item: ProductItem, exactItems: ProductItem[]) => {
     const inExact = exactItems.some((exact) => (exact.url || exact.title) === (item.url || item.title));
     if (inExact) return true;
@@ -161,6 +280,7 @@ const SearchPage = () => {
     const normalizedTitle = item.title.toLowerCase().replace(/\s+/g, " ").trim();
     if (!normalizedTitle.includes(normalizedQuery)) return false;
     if (queryLooksLikeDevice && isAccessoryLikeTitle(normalizedTitle)) return false;
+
     return true;
   };
 
@@ -181,6 +301,15 @@ const SearchPage = () => {
         const aExact = isExactLike(a, exactResults) ? 1 : 0;
         const bExact = isExactLike(b, exactResults) ? 1 : 0;
         if (aExact !== bExact) return bExact - aExact;
+
+        const aMatch = tokenMatchCount(a.title);
+        const bMatch = tokenMatchCount(b.title);
+        if (aMatch !== bMatch) return bMatch - aMatch;
+
+        const aAccessory = queryLooksLikeDevice && isAccessoryLikeTitle(a.title) ? 1 : 0;
+        const bAccessory = queryLooksLikeDevice && isAccessoryLikeTitle(b.title) ? 1 : 0;
+        if (aAccessory !== bAccessory) return aAccessory - bAccessory;
+
         return a.price - b.price;
       });
     }
@@ -197,11 +326,11 @@ const SearchPage = () => {
       href={item.url || "#"}
       target={item.url ? "_blank" : undefined}
       rel={item.url ? "noopener noreferrer" : undefined}
-      className={`group relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white/95 p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(139,92,246,0.22)] dark:border-white/10 dark:bg-white/5 ${
+      className={`group relative overflow-hidden rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-sm transition-all hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(139,92,246,0.22)] dark:border-white/10 dark:bg-white/5 ${
         item.url ? "" : "pointer-events-none opacity-80"
       }`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(99,102,241,0.12),_transparent_45%),radial-gradient(circle_at_bottom_left,_rgba(6,182,212,0.08),_transparent_45%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(99,102,41,0.12),_transparent_45%),radial-gradient(circle_at_bottom_left,_rgba(6,182,212,0.08),_transparent_45%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <div className="flex gap-4">
         <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-100 dark:border-white/10 dark:bg-white/10">
           {item.image ? (
@@ -235,16 +364,12 @@ const SearchPage = () => {
                     <span className="text-slate-400 line-through">{item.mrpText}</span>
                   )}
                   {item.discountPercent ? (
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700">
-                      {item.discountPercent}% OFF
-                    </span>
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700">{item.discountPercent}% OFF</span>
                   ) : null}
                 </div>
               )}
               {item.offerText && (
-                <p className="mt-1 line-clamp-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                  {item.offerText}
-                </p>
+                <p className="mt-1 line-clamp-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">{item.offerText}</p>
               )}
               <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300">
                 <span>{item.rating || "Rating unavailable"}</span>
@@ -258,10 +383,8 @@ const SearchPage = () => {
           </div>
         </div>
       </div>
-      <PurchaseRecorderForSearch
-        productName={item.title}
-        price={item.price}
-      />
+
+      <PurchaseRecorderForSearch productName={item.title} price={item.price} />
     </motion.a>
   );
 
@@ -293,18 +416,10 @@ const SearchPage = () => {
           <div className="mx-auto mt-5 grid max-w-6xl gap-3 lg:grid-cols-[1fr_auto]">
             <div className="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/95 px-4 py-4 shadow-inner shadow-violet-500/5 transition-all duration-300 focus-within:border-violet-300 focus-within:neon-violet-ring dark:border-white/10 dark:bg-white/5">
               <SearchIcon className="h-5 w-5 text-violet-600" />
-              <input
-                autoFocus
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Try: iPhone 13, Samsung S24 Ultra, MacBook Air M3..."
-                className="w-full border-none bg-transparent p-0 text-2xl font-bold text-slate-900 placeholder:text-slate-400 focus:ring-0 dark:text-white md:text-3xl"
-              />
+              <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Try: iPhone 13, Samsung S24 Ultra, MacBook Air M3..." className="w-full border-none bg-transparent p-0 text-2xl font-bold text-slate-900 placeholder:text-slate-400 focus:ring-0 dark:text-white md:text-3xl" />
             </div>
 
-            <div className="flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
-              Source: Amazon + Flipkart + Myntra + AJIO
-            </div>
+            <div className="flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">Source: Amazon + Flipkart + Myntra + AJIO</div>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -313,11 +428,7 @@ const SearchPage = () => {
               Trending
             </span>
             {quickSearches.map((suggestion) => (
-              <button
-                key={suggestion}
-                onClick={() => setQuery(suggestion)}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-violet-300 hover:text-violet-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-              >
+              <button key={suggestion} onClick={() => setQuery(suggestion)} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-violet-300 hover:text-violet-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
                 {suggestion}
               </button>
             ))}
@@ -326,7 +437,7 @@ const SearchPage = () => {
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3 dark:border-white/10 dark:bg-white/5">
               <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Total</p>
-              <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white">{totalResults}</p>
+              <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white">{results.length}</p>
             </div>
             <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3">
               <p className="text-xs uppercase tracking-[0.2em] text-cyan-700">Exact</p>
@@ -345,38 +456,22 @@ const SearchPage = () => {
                 <span>{exactRatio}% exact</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-cyan-100 dark:bg-white/10">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${exactRatio}%` }}
-                  transition={{ duration: 0.5 }}
-                  className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-500"
-                />
+                <motion.div initial={{ width: 0 }} animate={{ width: `${exactRatio}%` }} transition={{ duration: 0.5 }} className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-500" />
               </div>
             </div>
           )}
 
           {meta.storeBreakdown && meta.storeBreakdown.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                onClick={() => setActiveStoreFilter("all")}
-                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                  activeStoreFilter === "all"
-                    ? "border-violet-300 bg-violet-100 text-violet-800"
-                    : "border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-                }`}
-              >
+              <button onClick={() => setActiveStoreFilter("all")} className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                activeStoreFilter === "all" ? "border-violet-300 bg-violet-100 text-violet-800" : "border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+              }`}>
                 All stores
               </button>
               {meta.storeBreakdown.map((entry) => (
-                <button
-                  onClick={() => setActiveStoreFilter(entry.provider.toLowerCase())}
-                  key={`${entry.provider}-${entry.store}`}
-                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    activeStoreFilter === entry.provider.toLowerCase()
-                      ? "border-violet-300 bg-violet-100 text-violet-800"
-                      : "border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-                  }`}
-                >
+                <button onClick={() => setActiveStoreFilter(entry.provider.toLowerCase())} key={`${entry.provider}-${entry.store}`} className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  activeStoreFilter === entry.provider.toLowerCase() ? "border-violet-300 bg-violet-100 text-violet-800" : "border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                }`}>
                   {entry.store}: {entry.count}
                 </button>
               ))}
@@ -388,20 +483,10 @@ const SearchPage = () => {
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 dark:text-slate-300">
                 <SlidersHorizontal className="h-3.5 w-3.5" /> Sort
               </span>
-              {[
-                { key: "smart", label: "Smart" },
-                { key: "priceLow", label: "Price: Low to High" },
-                { key: "priceHigh", label: "Price: High to Low" },
-              ].map((option) => (
-                <button
-                  key={option.key}
-                  onClick={() => setSortMode(option.key as "smart" | "priceLow" | "priceHigh")}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    sortMode === option.key
-                      ? "border-cyan-300 bg-cyan-100 text-cyan-800"
-                      : "border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
-                  }`}
-                >
+              {[{ key: "smart", label: "Smart" }, { key: "priceLow", label: "Price: Low to High" }, { key: "priceHigh", label: "Price: High to Low" }].map((option) => (
+                <button key={option.key} onClick={() => setSortMode(option.key as "smart" | "priceLow" | "priceHigh")} className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  sortMode === option.key ? "border-cyan-300 bg-cyan-100 text-cyan-800" : "border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-200"
+                }`}>
                   {option.label}
                 </button>
               ))}
@@ -448,10 +533,10 @@ const SearchPage = () => {
             <div className="space-y-8">
               {displayedResults.length > 0 && (
                 <section>
-                  <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-amber-700">
-                    <TrendingUp className="h-4 w-4" />
-                    All scraped results ({displayedResults.length})
-                  </div>
+                      <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-amber-700">
+                        <TrendingUp className="h-4 w-4" />
+                        All scraped results ({results.length})
+                      </div>
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {displayedResults.map((item, index) => {
                       const isExact = isExactLike(item, exactResults);
@@ -462,13 +547,12 @@ const SearchPage = () => {
               )}
 
               {displayedResults.length === 0 && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">
-                  No results for this filter. Try switching store or sort mode.
-                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-200">No results for this filter. Try switching store or sort mode.</div>
               )}
             </div>
           )}
         </div>
+        {/* Debug panel removed */}
       </div>
     </div>
   );

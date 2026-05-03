@@ -129,16 +129,20 @@ function matchesToken(title: string, token: string, unitWords = DEFAULT_UNIT_WOR
 
   if (/^\d+$/.test(token)) {
     if (token.length <= 2) {
+      // For short numeric tokens (e.g. "16"), require exact numeric matches
+      // to avoid accidental matches against prices like "165" or other numbers.
       return words.some((word, index) => {
         if (!/^\d+$/.test(word)) return false;
         const next = words[index + 1] || "";
         const afterNext = words[index + 2] || "";
         const looksLikeDecimalDimension = /^\d+$/.test(next) && unitWords.has(afterNext);
         if (looksLikeDecimalDimension) return false;
-        return word.startsWith(token);
+        return word === token;
       });
     }
 
+    // For longer numeric tokens require exact match (to avoid dimensions) but
+    // allow full equality only (no startsWith) to prevent price collisions.
     return words.some((word, index) => {
       if (word !== token) return false;
       const next = words[index + 1] || "";
@@ -251,7 +255,7 @@ function scoreAndRankItems(
         (hasAllQualifiers ? 25 : -40) +
         (allNumberTokensMatched ? 30 : 0) +
         (hasPrimaryNumberExact ? 80 : shouldPreferExactPrimaryNumber ? -45 : 0) +
-        (hasUnexpectedQualifier ? -28 : 0) +
+        (hasUnexpectedQualifier ? -8 : 0) +
         Math.round(coverage * 50) -
         (isAccessoryLike ? 120 : 0);
 
@@ -272,10 +276,12 @@ function scoreAndRankItems(
     .filter((item) => {
       if (!mustTokens.length) return true;
       if (numberTokens.length > 0 && !item._allNumberTokensMatched) return false;
+      // Reject accessory-like items for device queries early so they can't
+      // sneak through via coverage/score shortcuts.
+      if (queryLooksLikeDevice && !queryAccessoryIntent && item._isAccessoryLike) return false;
       if (shouldPreferExactPrimaryNumber && !item._hasPrimaryNumberExact && queryLooksLikeDevice && !queryAccessoryIntent) {
         return item._coverage >= 0.8;
       }
-      if (queryLooksLikeDevice && !queryAccessoryIntent && item._isAccessoryLike) return false;
       if (queryLooksLikeDevice && !queryAccessoryIntent && !item._hasEnoughTokenHits) return false;
       if (queryLooksLikeDevice && !queryAccessoryIntent && !item._matchesBrand) return false;
       if (item._score >= 100) return true;
@@ -313,6 +319,8 @@ function scoreAndRankItems(
     const inExact = exactRanked.some((candidate) => (candidate.url || candidate.title) === (item.url || item.title));
     if (inExact) return false;
     if (queryLooksLikeDevice && !queryAccessoryIntent && item._isAccessoryLike) return false;
+    // Allow items that match brand and all numeric tokens (e.g., "iPhone 17 Pro")
+    if (item._matchesBrand && item._allNumberTokensMatched) return true;
     return item._score >= 40 || item._coverage >= 0.5;
   });
 

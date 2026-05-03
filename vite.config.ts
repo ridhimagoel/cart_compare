@@ -2,10 +2,69 @@ import { defineConfig } from "vite";
 import dyadComponentTagger from "@dyad-sh/react-vite-component-tagger";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import dotenv from 'dotenv';
 import { dedupeProducts, rankProducts, type ProductItem } from "./src/lib/productSearch";
+// Load .env from project root so server middleware (DB helpers) pick up credentials
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+import db from './src/lib/db/mysql';
 
 const scrapeCache = new Map<string, { expiresAt: number; data: unknown }>();
 const inflightScrapeCache = new Map<string, Promise<unknown>>();
+
+// Shared browser instance to avoid repeated cold launches which are expensive.
+let _sharedPuppeteerBrowser: any = null;
+async function getSharedBrowser() {
+  if (_sharedPuppeteerBrowser) return _sharedPuppeteerBrowser;
+  const { default: puppeteer } = await import("puppeteer");
+  _sharedPuppeteerBrowser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+  return _sharedPuppeteerBrowser;
+}
+async function closeSharedBrowser() {
+  try {
+    if (_sharedPuppeteerBrowser) {
+      await _sharedPuppeteerBrowser.close();
+      _sharedPuppeteerBrowser = null;
+    }
+  } catch {
+    _sharedPuppeteerBrowser = null;
+  }
+}
+
+async function preparePage(browser: any) {
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1200, height: 800, deviceScaleFactor: 1 });
+  await page.setUserAgent(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+  );
+  await page.setExtraHTTPHeaders({ "Accept-Language": "en-IN,en;q=0.9" });
+
+  // Block fonts, styles and other heavy resources to speed up loads, but allow images
+  // so scrapers can read `src`/`srcset` attributes and sites that render thumbnails
+  // client-side still populate proper image URLs in the DOM.
+  try {
+    await page.setRequestInterception(true);
+    page.on("request", (req: any) => {
+      const type = req.resourceType?.() || "";
+      if (["stylesheet", "font", "media", "websocket"].includes(type)) {
+        req.abort();
+        return;
+      }
+      req.continue();
+    });
+  } catch {
+    // some puppeteer versions may not support interception in certain environments
+  }
+
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty((globalThis as any).navigator, "webdriver", { get: () => false });
+  });
+
+  return page;
+}
 
 type AmazonScrapedItem = {
   title: string;
@@ -127,13 +186,35 @@ function formatPriceInr(price: number) {
 
 function parseRatingToText(rawValue: string | null | undefined) {
   if (!rawValue) return null;
-  const compact = rawValue.replace(/\s+/g, " ").trim();
+  // normalize common mojibake / nbsp characters and HTML entities that
+  // sometimes appear in Flipkart titles (e.g. "4.Â \u0026Â 13,461 Reviews")
+  let compact = String(rawValue)
+    .replace(/\u00A0|\u00C2|\u00AD/g, " ") // NBSP, Â, soft hyphen
+    .replace(/&nbsp;|&amp;/gi, " ")
+    .replace(/[\u2018\u2019\u201C\u201D]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Try to find rating patterns with context (e.g. "4.5 out of 5", "4 & 9,190 Reviews", "4. & 9,190 Reviews").
+  // Allow a trailing dot after the rating (Flipkart sometimes shows "4.").
   const ratingMatch =
-    compact.match(/([1-5](?:\.\d)?\.?)\s*(?:\/\s*5|out\s*of\s*5|stars?|★)\b/i) ||
-    compact.match(/([1-5](?:\.\d)?\.?)\s*&\s*[\d,]+\s*reviews?\b/i);
-  if (!ratingMatch?.[1]) return null;
-  const normalized = ratingMatch[1].replace(/\.$/, "");
-  return `${normalized} out of 5 stars`;
+    compact.match(/([1-5](?:\.\d+)?\.?)\s*(?:\/\s*5|out\s*of\s*5|stars?|★)\b/i) ||
+    compact.match(/([1-5](?:\.\d+)?\.?)\s*[\s\u00A0]*[&]\s*[\d,]+\s*reviews?\b/i) ||
+    compact.match(/([1-5](?:\.\d+)?\.?)(?=\s*(?:reviews?\b|&|out\s*of))/i);
+
+  if (ratingMatch?.[1]) {
+    const normalized = ratingMatch[1].replace(/\.$/, "");
+    return `${normalized} out of 5 stars`;
+  }
+
+  // aggressive fallback: strip non-ASCII and look for a leading 1-5 near an ampersand or 'Reviews'
+  const ascii = compact.replace(/[^\x00-\x7F]/g, " ");
+  const fallback =
+    ascii.match(/([1-5](?:\.\d+)?\.?)\s*[&\u0026]\s*[\d,]+\s*reviews?\b/i) ||
+    ascii.match(/([1-5](?:\.\d+)?\.?)(?=\s*(?:reviews?\b|&|\u0026))/i);
+  if (fallback?.[1]) return `${fallback[1].replace(/\.$/, "")} out of 5 stars`;
+
+  return null;
 }
 
 function sanitizeFlipkartTitle(title: string) {
@@ -190,6 +271,62 @@ async function fetchOgImage(productUrl: string) {
   }
 }
 
+async function fetchFlipkartRating(productUrl: string) {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(productUrl, {
+      method: "GET",
+      signal: controller.signal,
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+        "accept-language": "en-IN,en;q=0.9",
+      },
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    // Try JSON-LD first
+    try {
+      const ldMatches = Array.from(html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi));
+      for (const m of ldMatches) {
+        try {
+          const parsed = JSON.parse(m[1]);
+          const nodes = Array.isArray(parsed) ? parsed : [parsed];
+          for (const node of nodes) {
+            const agg = node?.aggregateRating || node?.offers?.aggregateRating || node?.review?.aggregateRating || node?.reviewRating || null;
+            const rating = node?.aggregateRating?.ratingValue ?? node?.reviewRating?.ratingValue ?? agg?.ratingValue ?? null;
+            if (rating) {
+              const val = String(rating).trim().replace(/\.$/, "");
+              if (/^[1-5](?:\.\d+)?$/.test(val)) return `${val} out of 5 stars`;
+            }
+          }
+        } catch {}
+      }
+    } catch {}
+
+    // Try HTML selectors / classes
+    const classMatch = html.match(/<div[^>]*class=["'][^"']*_3LWZlK[^"']*["'][^>]*>([\d.]{1,3})<\/div>/i)
+      || html.match(/<span[^>]*class=["'][^"']*_3LWZlK[^"']*["'][^>]*>([\d.]{1,3})<\/span>/i)
+      || html.match(/ratingValue["']?\s*[:>]\s*["']?([\d.]{1,3})["']?/i)
+      || html.match(/aggregateRating[\s\S]{0,120}?ratingValue["']?\s*[:>]\s*["']?([\d.]{1,3})["']?/i);
+    if (classMatch?.[1]) {
+      const v = classMatch[1].replace(/\.$/, "");
+      if (/^[1-5](?:\.\d+)?$/.test(v)) return `${v} out of 5 stars`;
+    }
+
+    // Loose regex fallback: look for patterns like '4. & 13,461 Reviews' or '4.5 out of 5'
+    const loose = html.replace(/\s+/g, " ").match(/([1-5](?:\.\d)?)(?=\s*(?:&|and|reviews|out of|stars|rating))/i);
+    if (loose?.[1]) return `${loose[1].replace(/\.$/, "")} out of 5 stars`;
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function dedupeProductsPerStore(items: ProductItem[]) {
   return items.filter((item, index, arr) => {
     const scopedKey = `${(item.source || item.store || "unknown").toLowerCase()}::${item.url || `${item.title}:${item.price}`}`;
@@ -238,16 +375,17 @@ function optimizeSearchQuery(rawQuery: string) {
   return query.length >= 2 ? query : rawQuery;
 }
 
-async function gotoWithRetry(page: Awaited<ReturnType<(typeof import("puppeteer"))["default"]["launch"]>> extends infer _T ? any : any, url: string, retries = 1) {
+async function gotoWithRetry(page: any, url: string, retries = 1) {
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // navigation timeout increased to allow heavier pages to load reliably
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
       return;
     } catch (error) {
       lastError = error;
       if (attempt < retries) {
-        await sleep(700 + attempt * 600);
+        await sleep(500 + attempt * 400);
       }
     }
   }
@@ -261,23 +399,15 @@ async function looksBlocked(page: any) {
   );
 }
 
-async function scrapeAmazon(query: string, limit = 24) {
+async function scrapeAmazon(query: string, limit = 24, sharedBrowser?: any) {
   const { default: puppeteer } = await import("puppeteer");
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1366, height: 900, deviceScaleFactor: 1 });
-  await page.evaluateOnNewDocument(() => {
-    Object.defineProperty((globalThis as any).navigator, "webdriver", { get: () => false });
-  });
-  await page.setUserAgent(
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-  );
-  await page.setExtraHTTPHeaders({
-    "Accept-Language": "en-IN,en;q=0.9",
-  });
+  let browser: any = sharedBrowser;
+  let ownBrowser = false;
+  if (!browser) {
+    browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    ownBrowser = true;
+  }
+  const page = await preparePage(browser);
 
   try {
     const queryLooksLikeDevice = /\b(phone|iphone|samsung|pixel|oneplus|mobile|laptop|macbook|tablet)\b/i.test(
@@ -747,24 +877,22 @@ async function scrapeAmazon(query: string, limit = 24) {
       items,
     };
   } finally {
-    await browser.close();
+    try {
+      await page.close().catch(() => undefined);
+    } catch {}
+    if (ownBrowser) await browser.close().catch(() => undefined);
   }
 }
 
-async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeResult> {
+async function scrapeFlipkart(query: string, limit = 24, sharedBrowser?: any): Promise<StoreScrapeResult> {
   const { default: puppeteer } = await import("puppeteer");
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1366, height: 900, deviceScaleFactor: 1 });
-  await page.setUserAgent(
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-  );
-  await page.setExtraHTTPHeaders({
-    "Accept-Language": "en-IN,en;q=0.9",
-  });
+  let browser: any = sharedBrowser;
+  let ownBrowser = false;
+  if (!browser) {
+    browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    ownBrowser = true;
+  }
+  const page = await preparePage(browser);
 
   try {
     const maxPages = 2;
@@ -869,6 +997,11 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
             parseRating(current?.querySelector?.("div.XQDdHH")?.textContent) ||
             parseRating(current?.querySelector?.("span.XQDdHH")?.textContent) ||
             parseRating(current?.querySelector?.("span._2_R_DZ")?.textContent) ||
+            parseRating(current?.querySelector?.("div._3LWZlK")?.textContent) ||
+            parseRating(current?.querySelector?.("span._3LWZlK")?.textContent) ||
+            parseRating(current?.querySelector?.("div._1rcHFq")?.textContent) ||
+            // class-substring fallback for variants like _3LWZlK mixed into other class names
+            parseRating(current?.querySelector?.("[class*='_3LWZlK']")?.textContent) ||
             parseRating(contextText) ||
             null;
 
@@ -953,9 +1086,13 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
               contextText.match(/₹\s?[\d,]{2,}/g)?.[1] ||
               null;
 
-            const rating =
+              const rating =
               parseRating(container?.querySelector?.("div.XQDdHH")?.textContent) ||
               parseRating(container?.querySelector?.("span.XQDdHH")?.textContent) ||
+              parseRating(container?.querySelector?.("div._3LWZlK")?.textContent) ||
+              parseRating(container?.querySelector?.("span._3LWZlK")?.textContent) ||
+              parseRating(container?.querySelector?.("div._1rcHFq")?.textContent) ||
+              parseRating(container?.querySelector?.("[class*='_3LWZlK']")?.textContent) ||
               parseRating(contextText) ||
               null;
 
@@ -1082,26 +1219,36 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
 
     const deduped = dedupeProducts(collectedItems).slice(0, Math.max(limit * 3, 24));
 
-    const needsImage = deduped
-      .map((item, index) => ({ item, index }))
-      .filter(({ item }) => {
-        if (!item.url) return false;
-        if (!item.image) return true;
-        const img = item.image.trim().toLowerCase();
-        return img.startsWith("data:image") || img.includes("placeholder");
-      })
-      .slice(0, 20);
+    // Previously we fetched OG images and ratings synchronously here which added
+    // substantial latency (HTTP fetches and extra Puppeteer page navigations).
+    // Rely on the non-blocking enrichment pass below to fetch missing images/ratings
+    // asynchronously so initial response returns quickly.
 
-    await Promise.all(
-      needsImage.map(async ({ item, index }) => {
-        const ogImage = await fetchOgImage(item.url as string);
-        if (!ogImage) return;
-        deduped[index] = {
-          ...deduped[index],
-          image: ogImage,
-        };
-      })
-    );
+    // Start a non-blocking enrichment pass for images/ratings to speed up initial response.
+    (async () => {
+      try {
+        const enrichList = deduped.slice(0, 6);
+        for (const item of enrichList) {
+          try {
+            if ((!item.image || item.image.includes('placeholder')) && item.url) {
+              const og = await fetchOgImage(item.url as string);
+              if (og) item.image = og;
+            }
+          } catch {}
+        }
+
+        for (let i = 0; i < enrichList.length; i++) {
+          const it = enrichList[i];
+          if (!it.rating && it.url) {
+            try {
+              const r = await fetchFlipkartRating(it.url as string);
+              if (r) it.rating = r;
+            } catch {}
+            await sleep(80 + Math.floor(Math.random() * 120));
+          }
+        }
+      } catch {}
+    })();
 
     return {
       ok: true,
@@ -1114,24 +1261,22 @@ async function scrapeFlipkart(query: string, limit = 24): Promise<StoreScrapeRes
       items: deduped,
     };
   } finally {
-    await browser.close();
+    try {
+      await page.close().catch(() => undefined);
+    } catch {}
+    if (ownBrowser) await browser.close().catch(() => undefined);
   }
 }
 
-async function scrapeMyntra(query: string, limit = 24): Promise<StoreScrapeResult> {
+async function scrapeMyntra(query: string, limit = 24, sharedBrowser?: any): Promise<StoreScrapeResult> {
   const { default: puppeteer } = await import("puppeteer");
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1366, height: 900, deviceScaleFactor: 1 });
-  await page.setUserAgent(
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-  );
-  await page.setExtraHTTPHeaders({
-    "Accept-Language": "en-IN,en;q=0.9",
-  });
+  let browser: any = sharedBrowser;
+  let ownBrowser = false;
+  if (!browser) {
+    browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    ownBrowser = true;
+  }
+  const page = await preparePage(browser);
 
   try {
     const searchUrl = `https://www.myntra.com/${encodeURIComponent(query)}?rawQuery=${encodeURIComponent(query)}`;
@@ -1215,24 +1360,22 @@ async function scrapeMyntra(query: string, limit = 24): Promise<StoreScrapeResul
       items: deduped,
     };
   } finally {
-    await browser.close();
+    try {
+      await page.close().catch(() => undefined);
+    } catch {}
+    if (ownBrowser) await browser.close().catch(() => undefined);
   }
 }
 
-async function scrapeAjio(query: string, limit = 24): Promise<StoreScrapeResult> {
+async function scrapeAjio(query: string, limit = 24, sharedBrowser?: any): Promise<StoreScrapeResult> {
   const { default: puppeteer } = await import("puppeteer");
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-  const page = await browser.newPage();
-  await page.setViewport({ width: 1366, height: 900, deviceScaleFactor: 1 });
-  await page.setUserAgent(
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
-  );
-  await page.setExtraHTTPHeaders({
-    "Accept-Language": "en-IN,en;q=0.9",
-  });
+  let browser: any = sharedBrowser;
+  let ownBrowser = false;
+  if (!browser) {
+    browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+    ownBrowser = true;
+  }
+  const page = await preparePage(browser);
 
   try {
     const searchUrl = `https://www.ajio.com/search/?text=${encodeURIComponent(query)}`;
@@ -1325,7 +1468,10 @@ async function scrapeAjio(query: string, limit = 24): Promise<StoreScrapeResult>
       items: deduped,
     };
   } finally {
-    await browser.close();
+    try {
+      await page.close().catch(() => undefined);
+    } catch {}
+    if (ownBrowser) await browser.close().catch(() => undefined);
   }
 }
 
@@ -1334,48 +1480,80 @@ function clampLimit(value: number) {
 }
 
 async function scrapeProducts(query: string, limit = 24) {
-  const amazonData = await scrapeAmazon(query, limit);
+  const browser = await getSharedBrowser();
+  const amazonData = await scrapeAmazon(query, limit, browser);
   return { ...amazonData, provider: "amazon", source: "amazon", storesSearched: ["amazon"] };
 }
 
 async function scrapeProductsAcrossStores(query: string, limit = 24, stores: StoreKey[] = ["amazon", "flipkart", "myntra", "ajio"]) {
   const selectedStores = stores.length ? stores : ["amazon", "flipkart", "myntra", "ajio"];
   const optimizedQuery = optimizeSearchQuery(query);
-  const perStoreTimeoutMs = 20000;
-  const tasks = selectedStores.map(async (store) => {
-    if (store === "amazon") {
-      const data = await withTimeout(
-        scrapeAmazon(optimizedQuery, limit),
-        perStoreTimeoutMs,
-        `Timeout while scraping ${store}`
-      );
-      const sourceItems = Array.isArray((data as { allScrapedItems?: unknown }).allScrapedItems)
-        ? ((data as { allScrapedItems: ProductItem[] }).allScrapedItems || [])
-        : Array.isArray((data as { items?: unknown }).items)
-          ? ((data as { items: ProductItem[] }).items || [])
-          : [];
-      const items = sourceItems.map((item) => ({ ...item, store: "Amazon India", source: "amazon" }));
-      return {
-        ok: Boolean((data as { ok?: boolean }).ok),
-        blocked: Boolean((data as { blocked?: boolean }).blocked),
-        store: "Amazon India",
-        provider: "amazon" as const,
-        source: "amazon" as const,
-        query: optimizedQuery,
-        count: items.length,
-        items,
-      } satisfies StoreScrapeResult;
-    }
-    if (store === "flipkart") {
-      return withTimeout(scrapeFlipkart(optimizedQuery, limit), 18000, `Timeout while scraping ${store}`);
-    }
-    if (store === "myntra") {
-      return withTimeout(scrapeMyntra(optimizedQuery, limit), perStoreTimeoutMs, `Timeout while scraping ${store}`);
-    }
-    return withTimeout(scrapeAjio(optimizedQuery, limit), perStoreTimeoutMs, `Timeout while scraping ${store}`);
-  });
+  const perStoreTimeoutMs = 30000;
 
-  const settled = await Promise.allSettled(tasks);
+  // Use a shared browser and run scrapers in small batches to reduce cold-launch costs
+  const browser = await getSharedBrowser();
+  // Increase concurrency slightly to fetch multiple stores faster (careful not to overload)
+  const concurrency = Math.min(3, selectedStores.length);
+  const results: PromiseSettledResult<StoreScrapeResult>[] = [];
+
+  for (let i = 0; i < selectedStores.length; i += concurrency) {
+    const batch = selectedStores.slice(i, i + concurrency).map(async (store) => {
+      if (store === "amazon") {
+        // Retry Amazon a few times with increasing timeouts to reduce transient failures
+        let lastErr: unknown = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const attemptTimeout = perStoreTimeoutMs + attempt * 8000;
+            const data = await withTimeout(scrapeAmazon(optimizedQuery, limit, browser), attemptTimeout, `Timeout while scraping ${store}`);
+            const sourceItems = Array.isArray((data as { allScrapedItems?: unknown }).allScrapedItems)
+              ? ((data as { allScrapedItems: ProductItem[] }).allScrapedItems || [])
+              : Array.isArray((data as { items?: unknown }).items)
+                ? ((data as { items: ProductItem[] }).items || [])
+                : [];
+            const items = sourceItems.map((item) => ({ ...item, store: "Amazon India", source: "amazon" }));
+            return {
+              ok: Boolean((data as { ok?: boolean }).ok),
+              blocked: Boolean((data as { blocked?: boolean }).blocked),
+              store: "Amazon India",
+              provider: "amazon" as const,
+              source: "amazon" as const,
+              query: optimizedQuery,
+              count: items.length,
+              items,
+            } as StoreScrapeResult;
+          } catch (err) {
+            lastErr = err;
+            await sleep(800 + attempt * 400);
+          }
+        }
+        // All attempts failed — propagate a rejection so caller marks this store failed
+        throw lastErr;
+      }
+      if (store === "flipkart") {
+        // Retry Flipkart similarly to make scraping more resilient
+        let lastErr: unknown = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const attemptTimeout = 30000 + attempt * 5000;
+            return await withTimeout(scrapeFlipkart(optimizedQuery, limit, browser), attemptTimeout, `Timeout while scraping ${store}`);
+          } catch (err) {
+            lastErr = err;
+            await sleep(600 + attempt * 300);
+          }
+        }
+        throw lastErr;
+      }
+      if (store === "myntra") {
+        return withTimeout(scrapeMyntra(optimizedQuery, limit, browser), perStoreTimeoutMs, `Timeout while scraping ${store}`);
+      }
+      return withTimeout(scrapeAjio(optimizedQuery, limit, browser), perStoreTimeoutMs, `Timeout while scraping ${store}`);
+    });
+
+    const settledBatch = await Promise.allSettled(batch);
+    results.push(...settledBatch);
+  }
+
+  const settled = results;
   const successful = settled
     .filter((entry): entry is PromiseFulfilledResult<StoreScrapeResult> => entry.status === "fulfilled")
     .map((entry) => entry.value);
@@ -1386,7 +1564,7 @@ async function scrapeProductsAcrossStores(query: string, limit = 24, stores: Sto
 
   if (allItems.length === 0) {
     try {
-      const directAmazon = await scrapeAmazon(optimizedQuery, Math.max(limit, 24));
+      const directAmazon = await scrapeAmazon(optimizedQuery, Math.max(limit, 24), browser);
       const directItems = Array.isArray((directAmazon as { allScrapedItems?: unknown }).allScrapedItems)
         ? ((directAmazon as { allScrapedItems: ProductItem[] }).allScrapedItems || [])
         : Array.isArray((directAmazon as { items?: unknown }).items)
@@ -1406,7 +1584,7 @@ async function scrapeProductsAcrossStores(query: string, limit = 24, stores: Sto
     if (relaxedQuery !== optimizedQuery) {
       try {
         const relaxedAmazon = await withTimeout(
-          scrapeAmazon(relaxedQuery, Math.max(limit, 24)),
+          scrapeAmazon(relaxedQuery, Math.max(limit, 24), browser),
           12000,
           "Timeout while scraping relaxed query"
         );
@@ -1482,6 +1660,26 @@ async function scrapeProductsAcrossStores(query: string, limit = 24, stores: Sto
     };
   }
 
+  // Quick best-effort: attempt to fetch OG images for top items with a short timeout
+  // so we can provide thumbnails for some products without blocking the whole response.
+  (async () => {
+    try {
+      const topCandidates = allItems.slice(0, 3).filter((it) => it.url && (!it.image || it.image.includes("placeholder")));
+      await Promise.all(
+        topCandidates.map((it) =>
+          Promise.race([
+            fetchOgImage(it.url as string),
+            new Promise<string | null>((resolve) => setTimeout(() => resolve(null), 1500)),
+          ])
+            .then((img) => {
+              if (img) it.image = img;
+            })
+            .catch(() => {})
+        )
+      );
+    } catch {}
+  })();
+
   return {
     ok: true,
     blocked: allBlocked,
@@ -1504,6 +1702,13 @@ async function scrapeProductsAcrossStores(query: string, limit = 24, stores: Sto
     relatedItems: fallbackRelatedItems,
     items: allItems,
     rankedItems: ranked.items,
+    // Debug helpers: first few titles returned per store and top ranked titles
+    debugStoreSamples: successful.map((entry) => ({
+      provider: entry.provider,
+      store: entry.store,
+      sampleTitles: (entry.items || []).slice(0, 6).map((it) => it.title).filter(Boolean),
+    })),
+    debugTopRankedTitles: ranked.items.slice(0, 8).map((it) => it.title),
   };
 }
 
@@ -1511,6 +1716,14 @@ export default defineConfig(() => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      // Forward client requests under /api/external/* to backend API at localhost:4000
+      '/api/external': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/external/, ''),
+      },
+    },
   },
   plugins: [
     dyadComponentTagger(),
@@ -1571,7 +1784,7 @@ export default defineConfig(() => ({
               ((data as { count: number }).count > 0);
 
             scrapeCache.set(key, {
-              expiresAt: now + (hasResults ? 1000 * 60 * 10 : 1000 * 30),
+              expiresAt: now + (hasResults ? 1000 * 60 * 15 : 1000 * 30),
               data,
             });
 
@@ -1645,7 +1858,7 @@ export default defineConfig(() => ({
               ((data as { count: number }).count > 0);
 
             scrapeCache.set(key, {
-              expiresAt: now + (hasResults ? 1000 * 60 * 8 : 1000 * 20),
+              expiresAt: now + (hasResults ? 1000 * 60 * 15 : 1000 * 20),
               data,
             });
 
@@ -1662,6 +1875,143 @@ export default defineConfig(() => ({
             );
           }
         });
+
+        // Database API: ensure tables and provide simple purchases/watchlist endpoints
+        db.ensureTables().catch((e) => console.error('DB init error', e));
+
+        server.middlewares.use("/api/db/purchases", async (req, res) => {
+          try {
+            if (req.method === 'OPTIONS') {
+              res.statusCode = 204; res.end(); return;
+            }
+            if (req.method === 'POST') {
+              let body = '';
+              req.on('data', (c) => (body += c));
+              await new Promise((r) => req.on('end', r));
+              const data = JSON.parse(body || '{}');
+              if (!data.title || typeof data.price !== 'number') {
+                res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ ok: false, message: 'title and numeric price required' }));
+                return;
+              }
+              const inserted = await db.addPurchase({ title: data.title, price: data.price, url: data.url, store: data.store });
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ ok: true, id: inserted.id }));
+              return;
+            }
+            if (req.method === 'GET') {
+              const url = new URL(req.url || '', 'http://localhost');
+              const limit = Number(url.searchParams.get('limit') || '50');
+              const items = await db.listPurchases(limit);
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ ok: true, items }));
+              return;
+            }
+            res.statusCode = 405; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ ok: false, message: 'Method not allowed' }));
+          } catch (err) {
+            res.statusCode = 500; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ ok: false, message: err instanceof Error ? err.message : String(err) }));
+          }
+        });
+
+        server.middlewares.use("/api/db/watchlist", async (req, res) => {
+          try {
+            if (req.method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
+            if (req.method === 'POST') {
+              let body = '';
+              req.on('data', (c) => (body += c));
+              await new Promise((r) => req.on('end', r));
+              const data = JSON.parse(body || '{}');
+              if (!data.title) {
+                res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ ok: false, message: 'title required' }));
+                return;
+              }
+              const inserted = await db.addWatch({ title: data.title, url: data.url, store: data.store });
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ ok: true, id: inserted.id }));
+              return;
+            }
+            if (req.method === 'GET') {
+              const url = new URL(req.url || '', 'http://localhost');
+              const limit = Number(url.searchParams.get('limit') || '50');
+              const items = await db.listWatch(limit);
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ ok: true, items }));
+              return;
+            }
+            res.statusCode = 405; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ ok: false, message: 'Method not allowed' }));
+          } catch (err) {
+            res.statusCode = 500; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ ok: false, message: err instanceof Error ? err.message : String(err) }));
+          }
+        });
+
+          // Price history API
+          server.middlewares.use("/api/db/price-history", async (req, res) => {
+            try {
+              if (req.method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
+              if (req.method === 'POST') {
+                let body = '';
+                req.on('data', (c) => (body += c));
+                await new Promise((r) => req.on('end', r));
+                const data = JSON.parse(body || '{}');
+                if (!data.title) {
+                  res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ ok: false, message: 'title required' }));
+                  return;
+                }
+                const inserted = await db.addPriceHistory({ watchlist_id: data.watchlist_id, title: data.title, price: data.price, store: data.store });
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ ok: true, id: inserted.id }));
+                return;
+              }
+              if (req.method === 'GET') {
+                const url = new URL(req.url || '', 'http://localhost');
+                const limit = Number(url.searchParams.get('limit') || '200');
+                const watchlistId = url.searchParams.get('watchlistId');
+                const items = await db.listPriceHistory(watchlistId ? Number(watchlistId) : undefined, limit);
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ ok: true, items }));
+                return;
+              }
+              res.statusCode = 405; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ ok: false, message: 'Method not allowed' }));
+            } catch (err) {
+              res.statusCode = 500; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ ok: false, message: err instanceof Error ? err.message : String(err) }));
+            }
+          });
+
+          // Alerts API
+          server.middlewares.use("/api/db/alerts", async (req, res) => {
+            try {
+              if (req.method === 'OPTIONS') { res.statusCode = 204; res.end(); return; }
+              if (req.method === 'GET') {
+                const url = new URL(req.url || '', 'http://localhost');
+                const limit = Number(url.searchParams.get('limit') || '100');
+                const items = await db.listAlerts(limit);
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ ok: true, items }));
+                return;
+              }
+              if (req.method === 'POST') {
+                // allow acknowledging alerts by POST { id }
+                let body = '';
+                req.on('data', (c) => (body += c));
+                await new Promise((r) => req.on('end', r));
+                const data = JSON.parse(body || '{}');
+                if (!data.id) {
+                  res.statusCode = 400; res.setHeader('Content-Type', 'application/json');
+                  res.end(JSON.stringify({ ok: false, message: 'id required' }));
+                  return;
+                }
+                const ok = await db.ackAlert(Number(data.id));
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ ok }));
+                return;
+              }
+              res.statusCode = 405; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ ok: false, message: 'Method not allowed' }));
+            } catch (err) {
+              res.statusCode = 500; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ ok: false, message: err instanceof Error ? err.message : String(err) }));
+            }
+          });
       },
     },
   ],

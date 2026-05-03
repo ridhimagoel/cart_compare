@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ExternalLink, TrendingDown, Star } from 'lucide-react';
+import { ExternalLink, TrendingDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import PurchaseRecorder from './PurchaseRecorder';
 
@@ -50,12 +50,7 @@ const ProductCard = ({ platform, price, discount, logo, isLowest, delay = 0 }: P
 
       <div className="mb-8">
         <h3 className="text-4xl font-bold tracking-tighter text-white">{price}</h3>
-        <div className="flex items-center gap-2 mt-2">
-          <div className="flex text-yellow-400">
-            {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
-          </div>
-          <span className="text-xs text-slate-300 font-medium">4.8 (2.4k reviews)</span>
-        </div>
+        {/* ratings removed per request */}
       </div>
 
       <button className="w-full py-4 rounded-2xl bg-white/65 border border-white/60 font-bold text-slate-900 flex items-center justify-center gap-2 group-hover:bg-white group-hover:text-black transition-all duration-300">
