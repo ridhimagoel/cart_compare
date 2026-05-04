@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Simple migration runner for the SQL files in scripts/db/migrations
+// CommonJS migration runner for scripts/db/migrations
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
@@ -10,7 +10,7 @@ async function main() {
 
   const host = process.env.DB_MYSQL_HOST || 'localhost';
   const port = Number(process.env.DB_MYSQL_PORT || 3306);
-  const user = process.env.DB_MYSQL_USER || 'root';
+  const user = process.env.DB_MYSQL_USER || 'cartuser';
   const password = process.env.DB_MYSQL_PASSWORD || '205Ridhimag@';
   const database = process.env.DB_MYSQL_DATABASE || 'cart_compare';
 
@@ -26,8 +26,17 @@ async function main() {
         await conn.query(sql);
         console.log('OK', file);
       } catch (e) {
-        console.error('Error executing', file, e);
-        throw e;
+        // If migration attempts to add columns/indexes that already exist,
+        // older MySQL versions may not support IF NOT EXISTS. Treat duplicate
+        // column/index errors as non-fatal so migrations are idempotent.
+        const dupColumnErrnos = new Set([1060]); // ER_DUP_FIELDNAME
+        const dupIndexErrCodes = new Set(['ER_DUP_KEYNAME', 'ER_DUP_KEY']);
+        if (e && (dupColumnErrnos.has(e.errno) || dupIndexErrCodes.has(e.code))) {
+          console.warn('Non-fatal migration error (already exists), skipping:', e.message);
+        } else {
+          console.error('Error executing', file, e && e.message ? e.message : e);
+          throw e;
+        }
       }
     }
     console.log('All migrations applied');
@@ -37,6 +46,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error(err);
+  console.error(err && err.message ? err.message : err);
   process.exit(1);
 });

@@ -6,7 +6,7 @@ export function initPoolFromEnv() {
   if (pool) return pool;
   const host = process.env.DB_MYSQL_HOST || 'localhost';
   const port = Number(process.env.DB_MYSQL_PORT || 3306);
-  const user = process.env.DB_MYSQL_USER || 'cartuser';
+  const user = process.env.DB_MYSQL_USER || 'root';
   const password = process.env.DB_MYSQL_PASSWORD || '205Ridhimag@';
   const database = process.env.DB_MYSQL_DATABASE || 'cart_compare';
 
@@ -130,6 +130,12 @@ export async function ackAlert(id: number) {
   return res.affectedRows === 1;
 }
 
+export async function addAlert({ watchlist_id, price, store }: { watchlist_id?: number | null; price: number; store?: string | null }) {
+  const p = initPoolFromEnv();
+  const [res]: any = await p.execute('INSERT INTO alerts (watchlist_id, price, store) VALUES (?, ?, ?)', [watchlist_id || null, price, store || null]);
+  return { id: res.insertId };
+}
+
 export async function addPurchase({ title, price, url, store }: { title: string; price: number; url?: string; store?: string }) {
   const p = initPoolFromEnv();
   const [res]: any = await p.execute('INSERT INTO purchases (title, price, url, store) VALUES (?, ?, ?, ?)', [title, price, url || null, store || null]);
@@ -156,6 +162,32 @@ export async function listWatch(limit = 50) {
   return rows as any[];
 }
 
+export async function getRecentSearchResults(queryStr: string, maxAgeMinutes = 5, stores?: string[] ) {
+  const p = initPoolFromEnv();
+  const minutes = Number(maxAgeMinutes || 5);
+  // find the most recent search_history row for this exact query within the timeframe
+  const [histRows] = await p.execute(
+    `SELECT id, created_at FROM search_history WHERE query = ? AND created_at >= (NOW() - INTERVAL ? MINUTE) ORDER BY created_at DESC LIMIT 1`,
+    [String(queryStr), minutes]
+  );
+  const hist = (histRows as any[])[0];
+  if (!hist) return null;
+  const searchId = hist.id;
+  // fetch associated results, optionally filter by stores
+  let sql = `SELECT * FROM search_results WHERE search_history_id = ?`;
+  const params: any[] = [searchId];
+  if (stores && stores.length) {
+    const placeholders = stores.map(() => '?').join(',');
+    sql += ` AND LOWER(store) IN (${placeholders})`;
+    for (const s of stores) params.push(String(s).toLowerCase());
+  }
+  sql += ` ORDER BY fetched_at DESC`;
+  const [rows] = await p.execute(sql, params);
+  // parse metadata
+  const parsed = (rows as any[]).map((r) => ({ ...r, metadata: r.metadata ? JSON.parse(r.metadata) : null }));
+  return { search_history_id: searchId, created_at: hist.created_at, results: parsed };
+}
+
 export default {
   initPoolFromEnv,
   ensureTables,
@@ -163,4 +195,7 @@ export default {
   listPurchases,
   addWatch,
   listWatch,
+  addAlert,
+  ackAlert,
+  listAlerts,
 };

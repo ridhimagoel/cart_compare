@@ -8,7 +8,7 @@ const mysql = require('mysql2/promise');
     const conn = await mysql.createConnection({
       host: process.env.DB_MYSQL_HOST || 'localhost',
       port: Number(process.env.DB_MYSQL_PORT || 3306),
-      user: process.env.DB_MYSQL_USER || 'cartuser',
+      user: process.env.DB_MYSQL_USER || 'root',
       password: process.env.DB_MYSQL_PASSWORD || '205Ridhimag@',
       database: process.env.DB_MYSQL_DATABASE || 'cart_compare',
     });

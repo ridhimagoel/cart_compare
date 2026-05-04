@@ -1759,6 +1759,26 @@ export default defineConfig(() => ({
             const cached = scrapeCache.get(key);
             const now = Date.now();
 
+            // If DB persistence is enabled, check for a recent stored result (5 minute cache)
+            try {
+              const persistEnabled = process.env.VITE_PERSIST_RESULTS === 'true' || (import.meta.env && import.meta.env.VITE_PERSIST_RESULTS === 'true');
+              if (persistEnabled) {
+                try {
+                  const dbRecent = await db.getRecentSearchResults(query, 5, stores);
+                  if (dbRecent && Array.isArray(dbRecent.results) && dbRecent.results.length) {
+                    res.setHeader('Content-Type', 'application/json');
+                    res.end(JSON.stringify({ ok: true, items: dbRecent.results, count: dbRecent.results.length, cached: true, source: 'db', search_history_id: dbRecent.search_history_id }));
+                    return;
+                  }
+                } catch (e) {
+                  // ignore DB errors and fall back to live scraping
+                  console.warn('DB recent search check failed, falling back to live scrape:', e && e.message ? e.message : e);
+                }
+              }
+            } catch (e) {
+              // ignore
+            }
+
             if (cached && cached.expiresAt > now) {
               res.setHeader("Content-Type", "application/json");
               res.end(JSON.stringify({ ...(cached.data as object), cached: true }));
@@ -1877,7 +1897,11 @@ export default defineConfig(() => ({
         });
 
         // Database API: ensure tables and provide simple purchases/watchlist endpoints
-        db.ensureTables().catch((e) => console.error('DB init error', e));
+        if (process.env.SKIP_DB_INIT === 'true' || import.meta.env && import.meta.env.SKIP_DB_INIT === 'true') {
+          console.log('SKIP_DB_INIT set — skipping DB ensureTables()');
+        } else {
+          db.ensureTables().catch((e) => console.error('DB init error', e));
+        }
 
         server.middlewares.use("/api/db/purchases", async (req, res) => {
           try {

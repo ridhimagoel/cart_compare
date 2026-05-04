@@ -16,13 +16,14 @@ const ComparisonTable = () => {
   ];
 
   return (
-    <section className="py-32 px-6 max-w-5xl mx-auto">
-      <div className="text-center mb-20">
-        <h2 className="text-5xl font-bold tracking-tighter mb-6">
-          The <span className="text-gradient">compare_cart</span> Edge
-        </h2>
-        <p className="text-xl text-gray-600 dark:text-slate-300">How we stack up against the competition.</p>
-      </div>
+    <>
+      <section className="py-12 px-6 max-w-5xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-5xl font-bold tracking-tighter mb-6">
+            The <span className="text-gradient">compare_cart</span> Edge
+          </h2>
+          <p className="text-xl text-gray-600 dark:text-slate-300">How we stack up against the competition.</p>
+        </div>
 
       <div className="glass rounded-[3rem] overflow-hidden border-none shadow-2xl">
         <table className="w-full text-left border-collapse">
@@ -71,6 +72,7 @@ const ComparisonTable = () => {
         </table>
       </div>
     </section>
+    </>
   );
 };
 

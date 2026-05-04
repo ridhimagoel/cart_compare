@@ -37,7 +37,7 @@ app.use((req, res, next) => {
 const pool = mysql.createPool({
   host: process.env.DB_MYSQL_HOST || 'localhost',
   port: Number(process.env.DB_MYSQL_PORT || 3306),
-  user: process.env.DB_MYSQL_USER || 'cartuser',
+  user: process.env.DB_MYSQL_USER || 'root',
   password: process.env.DB_MYSQL_PASSWORD || '205Ridhimag@',
   database: process.env.DB_MYSQL_DATABASE || 'cart_compare',
   waitForConnections: true,
@@ -279,6 +279,158 @@ app.get('/search-results', async (req, res) => {
     const rows = (await pool.query('SELECT * FROM search_results WHERE search_history_id = ? ORDER BY fetched_at DESC', [search_id]))[0];
     const parsed = rows.map((r) => ({ ...r, metadata: r.metadata ? JSON.parse(r.metadata) : null }));
     res.json({ ok: true, rows: parsed });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// Query stored results with flexible filters (price range, store, text, date range)
+app.get('/stored-results', async (req, res) => {
+  try {
+    const q = req.query.q || null; // text query to search in title
+    const minPrice = req.query.min_price != null ? Number(req.query.min_price) : null;
+    const maxPrice = req.query.max_price != null ? Number(req.query.max_price) : null;
+    const store = req.query.store || null;
+    const startDate = req.query.start_date || null; // ISO date
+    const endDate = req.query.end_date || null; // ISO date
+    const limit = Number(req.query.limit || 100);
+    const offset = Number(req.query.offset || 0);
+
+    const clauses = [];
+    const params = [];
+
+    if (q) {
+      clauses.push('LOWER(title) LIKE ?');
+      params.push(`%${String(q).toLowerCase()}%`);
+    }
+    if (minPrice != null) {
+      clauses.push('price >= ?');
+      params.push(minPrice);
+    }
+    if (maxPrice != null) {
+      clauses.push('price <= ?');
+      params.push(maxPrice);
+    }
+    if (store) {
+      clauses.push('LOWER(store) = ?');
+      params.push(String(store).toLowerCase());
+    }
+    if (startDate) {
+      clauses.push('fetched_at >= ?');
+      params.push(startDate);
+    }
+    if (endDate) {
+      clauses.push('fetched_at <= ?');
+      params.push(endDate);
+    }
+
+    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+
+    const sql = `SELECT * FROM search_results ${where} ORDER BY fetched_at DESC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const [rows] = await pool.query(sql, params);
+    const parsed = rows.map((r) => ({ ...r, metadata: r.metadata ? JSON.parse(r.metadata) : null }));
+    res.json({ ok: true, rows: parsed });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// Simple stats endpoint for aggregated min/max/avg price
+app.get('/stored-results/stats', async (req, res) => {
+  try {
+    const store = req.query.store || null;
+    const clauses = [];
+    const params = [];
+    if (store) {
+      clauses.push('LOWER(store) = ?');
+      params.push(String(store).toLowerCase());
+    }
+    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+    const [rows] = await pool.query(`SELECT COUNT(*) as count, MIN(price) as min_price, MAX(price) as max_price, AVG(price) as avg_price FROM search_results ${where}`, params);
+    res.json({ ok: true, stats: rows && rows[0] ? rows[0] : {} });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// Create a price alert
+app.post('/alerts', async (req, res) => {
+  try {
+    const { watchlist_id = null, price, store = null } = req.body || {};
+    if (price == null) return res.status(400).json({ ok: false, message: 'price required' });
+    const [result] = await pool.query('INSERT INTO alerts (watchlist_id, price, store) VALUES (?, ?, ?)', [watchlist_id || null, price, store || null]);
+    const alertId = result.insertId;
+    const [rows] = await pool.query('SELECT * FROM alerts WHERE id = ?', [alertId]);
+    const row = rows && rows[0] ? rows[0] : null;
+    res.json({ ok: true, id: alertId, row });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// List alerts (optionally only pending)
+app.get('/alerts', async (req, res) => {
+  try {
+    const onlyPending = req.query.pending === 'true';
+    const limit = Number(req.query.limit || 100);
+    const sql = onlyPending ? 'SELECT * FROM alerts WHERE acknowledged = 0 ORDER BY triggered_at DESC LIMIT ?' : 'SELECT * FROM alerts ORDER BY triggered_at DESC LIMIT ?';
+    const [rows] = await pool.query(sql, [limit]);
+    res.json({ ok: true, rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// Acknowledge an alert
+app.post('/alerts/:id/ack', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, message: 'invalid id' });
+    const [result] = await pool.query('UPDATE alerts SET acknowledged = 1 WHERE id = ?', [id]);
+    res.json({ ok: true, acknowledged: result.affectedRows === 1 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+// Simple watchlist API (matches dev middleware endpoint)
+app.post('/api/db/watchlist', async (req, res) => {
+  try {
+    const { title, url = null, store = null } = req.body || {};
+    if (!title) return res.status(400).json({ ok: false, message: 'title required' });
+    const [result] = await pool.query('INSERT INTO watchlist (title, url, store) VALUES (?, ?, ?)', [title, url, store]);
+    const id = result.insertId;
+    const [rows] = await pool.query('SELECT * FROM watchlist WHERE id = ?', [id]);
+    const row = rows && rows[0] ? rows[0] : null;
+    res.json({ ok: true, id, row });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, message: err.message });
+  }
+});
+
+app.get('/api/db/watchlist', async (req, res) => {
+  try {
+    const q = req.query.q ? String(req.query.q) : null;
+    const limit = Number(req.query.limit || 50);
+    if (q) {
+      // try to match by exact url first, then by title LIKE
+      const [byUrl] = await pool.query('SELECT * FROM watchlist WHERE url = ? LIMIT 1', [q]);
+      if (byUrl && byUrl[0]) return res.json({ ok: true, items: [byUrl[0]] });
+      const like = `%${q}%`;
+      const [byTitle] = await pool.query('SELECT * FROM watchlist WHERE title LIKE ? ORDER BY created_at DESC LIMIT 10', [like]);
+      return res.json({ ok: true, items: byTitle });
+    }
+    const [rows] = await pool.query('SELECT * FROM watchlist ORDER BY created_at DESC LIMIT ?', [limit]);
+    res.json({ ok: true, items: rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, message: err.message });

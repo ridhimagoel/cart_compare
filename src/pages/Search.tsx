@@ -17,6 +17,8 @@ import {
 import { Link } from "react-router-dom";
 import type { ProductItem } from "@/lib/productSearch";
 import PurchaseRecorderForSearch from '../components/PurchaseRecorderForSearch';
+import AddToWishlistButton from '@/components/AddToWishlistButton';
+import WatchlistPreview from '@/components/WatchlistPreview';
 
 type SearchMeta = {
   store?: string;
@@ -95,6 +97,51 @@ const SearchPage = () => {
     [trimmedQuery]
   );
   const totalResults = results.length;
+
+  // local UI state for Watchlist modal
+  const [isWishlistOpen, setIsWishlistOpen] = useState(false);
+
+  // Persist fetched results to the API DB when enabled via Vite env `VITE_PERSIST_RESULTS`.
+  // This is best-effort and will not block the UI; failures are logged silently.
+  const persistResultsToServer = async (searchQuery: string, items: ProductItem[], extraMeta: any) => {
+    try {
+      if (typeof window === 'undefined') return;
+      if (import.meta.env.VITE_PERSIST_RESULTS == 'true') return;
+      if (!searchQuery || !items || !items.length) return;
+
+      const apiBase = `${window.location.protocol}//${window.location.hostname}:4000`;
+
+      // Create or update search_history
+      const historyResp = await fetch(`${apiBase}/search-history`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: searchQuery, results_count: items.length, metadata: extraMeta }),
+      });
+      const historyJson = await historyResp.json();
+      if (!historyResp.ok || !historyJson.ok || !historyJson.id) return;
+      const search_history_id = historyJson.id;
+
+      // Prepare minimal result objects for insertion
+      const toInsert = items.map((it) => ({
+        title: it.title || null,
+        price: it.price != null ? Number(it.price) : null,
+        store: it.store || null,
+        url: it.url || null,
+        metadata: { image: it.image || null, rating: it.rating || null, priceText: it.priceText || null },
+      }));
+
+      // Batch insert
+      await fetch(`${apiBase}/search-results`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ search_history_id, results: toInsert }),
+      });
+    } catch (e) {
+      // Best-effort: don't break UX if persistence fails
+      // eslint-disable-next-line no-console
+      console.warn('Persisting search results failed', e && e.message ? e.message : e);
+    }
+  };
 
   const exactRatio = totalResults > 0 ? Math.round((exactResults.length / totalResults) * 100) : 0;
   const quickSearches = ["iphone 13", "iphone 14", "s24 ultra", "macbook air m3", "ps5", "running shoes"];
@@ -234,6 +281,8 @@ const SearchPage = () => {
           effectiveQuery: data.effectiveQuery,
           storeBreakdown: data.storeBreakdown || [],
         });
+        // Fire-and-forget persist to the API DB (if enabled)
+        void persistResultsToServer(trimmedQuery, merged, { provider: data.provider, effectiveQuery: data.effectiveQuery, storeBreakdown: data.storeBreakdown || [] });
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         setResults([]);
@@ -341,16 +390,22 @@ const SearchPage = () => {
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${type === "exact" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-              {type === "exact" ? "Exact" : "Related"}
-            </span>
-            {item.store && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-white/10 dark:text-slate-200">
-                <Store className="h-3.5 w-3.5" />
-                {item.store}
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${type === "exact" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                {type === "exact" ? "Exact" : "Related"}
               </span>
-            )}
+              {item.store && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 dark:bg-white/10 dark:text-slate-200">
+                  <Store className="h-3.5 w-3.5" />
+                  {item.store}
+                </span>
+              )}
+            </div>
+
+            <div className="ml-3 flex-shrink-0">
+              <AddToWishlistButton title={item.title} url={item.url} store={item.store} className="px-3 py-1 rounded-full text-sm" />
+            </div>
           </div>
 
           <p className="line-clamp-2 text-sm font-semibold text-slate-900 dark:text-white">{item.title}</p>
@@ -382,9 +437,14 @@ const SearchPage = () => {
             </span>
           </div>
         </div>
-      </div>
+        </div>
 
-      <PurchaseRecorderForSearch productName={item.title} price={item.price} />
+        <div className="mt-3 flex justify-end">
+          {/* AddToWishlistButton handles saved state and persistence */}
+          <AddToWishlistButton title={item.title} url={item.url} store={item.store} />
+        </div>
+
+        <PurchaseRecorderForSearch productName={item.title} price={item.price} />
     </motion.a>
   );
 
@@ -434,32 +494,7 @@ const SearchPage = () => {
             ))}
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Total</p>
-              <p className="mt-1 text-2xl font-black text-slate-900 dark:text-white">{results.length}</p>
-            </div>
-            <div className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.2em] text-cyan-700">Exact</p>
-              <p className="mt-1 text-2xl font-black text-cyan-800">{exactResults.length}</p>
-            </div>
-            <div className="rounded-2xl border border-fuchsia-200 bg-fuchsia-50 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.2em] text-fuchsia-700">Related</p>
-              <p className="mt-1 text-2xl font-black text-fuchsia-800">{relatedResults.length}</p>
-            </div>
-          </div>
-
-          {totalResults > 0 && (
-            <div className="mt-3 rounded-xl border border-cyan-200 bg-cyan-50/80 px-3 py-2 dark:border-cyan-400/20 dark:bg-cyan-400/10">
-              <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-cyan-800 dark:text-cyan-100">
-                <span>Match Quality</span>
-                <span>{exactRatio}% exact</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-cyan-100 dark:bg-white/10">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${exactRatio}%` }} transition={{ duration: 0.5 }} className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-500" />
-              </div>
-            </div>
-          )}
+          {/* Totals and Match Quality removed per user request */}
 
           {meta.storeBreakdown && meta.storeBreakdown.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -553,6 +588,31 @@ const SearchPage = () => {
           )}
         </div>
         {/* Debug panel removed */}
+
+        {/* View Wishlist floating button */}
+        <div className="fixed right-6 top-28 z-50">
+          <button
+            onClick={() => setIsWishlistOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:opacity-95"
+          >
+            View Wishlist
+          </button>
+        </div>
+
+        {isWishlistOpen && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setIsWishlistOpen(false)} />
+            <div className="relative z-10 w-full max-w-3xl p-6">
+              <div className="rounded-xl bg-white/5 p-4 shadow-2xl backdrop-blur-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-lg font-bold">Your Wishlist</h3>
+                  <button onClick={() => setIsWishlistOpen(false)} className="text-sm font-medium text-slate-500">Close</button>
+                </div>
+                <WatchlistPreview />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -33,9 +33,8 @@ CREATE TABLE IF NOT EXISTS product_stats (
   INDEX (watchlist_id)
 ) ENGINE=InnoDB;
 
--- Ensure watchlist has a target_price column and alerted flag (MySQL 8+ supports IF NOT EXISTS on ADD COLUMN)
-ALTER TABLE watchlist ADD COLUMN IF NOT EXISTS target_price DECIMAL(12,2) NULL;
-ALTER TABLE watchlist ADD COLUMN IF NOT EXISTS alerted TINYINT(1) DEFAULT 0;
+-- Ensure watchlist has a target_price column and alerted flag
+ALTER TABLE watchlist ADD COLUMN target_price DECIMAL(12,2) NULL;
+ALTER TABLE watchlist ADD COLUMN alerted TINYINT(1) DEFAULT 0;
 
--- Make watchlist_id unique in product_stats so we can upsert by watchlist_id
-ALTER TABLE product_stats ADD UNIQUE INDEX IF NOT EXISTS ux_product_stats_watchlist_id (watchlist_id);
+ALTER TABLE product_stats ADD UNIQUE INDEX ux_product_stats_watchlist_id (watchlist_id);

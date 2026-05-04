@@ -16,8 +16,10 @@ type WatchItem = {
 
 const WatchlistPreview: React.FC = () => {
   const [items, setItems] = React.useState<WatchItem[]>([]);
+  const [emailMap, setEmailMap] = React.useState<Record<string, string>>({});
   const [alerts, setAlerts] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [sortMode, setSortMode] = React.useState<'newest' | 'oldest' | 'priceLow' | 'priceHigh'>('newest');
 
   React.useEffect(() => {
     let mounted = true;
@@ -33,8 +35,24 @@ const WatchlistPreview: React.FC = () => {
       }
     }
     load();
-    return () => { mounted = false; };
+    // listen for external additions
+    function onAdd() { load(); }
+    window.addEventListener('watchlist:added', onAdd as EventListener);
+    return () => { mounted = false; window.removeEventListener('watchlist:added', onAdd as EventListener); };
   }, []);
+
+  React.useEffect(() => {
+    // load saved emails from localStorage
+    const map: Record<string, string> = {};
+    try {
+      for (const it of items) {
+        const key = `watchlist-email-${it.id}`;
+        const v = localStorage.getItem(key);
+        if (v) map[String(it.id)] = v;
+      }
+    } catch (e) {}
+    setEmailMap(map);
+  }, [items]);
 
   React.useEffect(() => {
     let mounted = true;
@@ -102,11 +120,38 @@ const WatchlistPreview: React.FC = () => {
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-blue-500/10 blur-3xl rounded-full" />
             <div className="relative space-y-4">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="text-sm text-gray-600">Saved items: <strong>{items.length}</strong></div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500">Sort</label>
+                  <select value={sortMode} onChange={(e) => setSortMode(e.target.value as any)} className="rounded-md px-2 py-1 bg-white/5 text-white">
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="priceLow">Price: Low → High</option>
+                    <option value="priceHigh">Price: High → Low</option>
+                  </select>
+                </div>
+              </div>
               {loading && <div className="text-gray-500">Loading watchlist...</div>}
               {!loading && items.length === 0 && (
                 <div className="p-6 rounded-2xl bg-white/60 border border-gray-100">No items in your watchlist yet.</div>
               )}
-              {items.map((item) => (
+              {(() => {
+                const list = [...items];
+                list.sort((a, b) => {
+                  if (sortMode === 'newest') {
+                    return (new Date(b.created_at || 0).getTime() || 0) - (new Date(a.created_at || 0).getTime() || 0);
+                  }
+                  if (sortMode === 'oldest') {
+                    return (new Date(a.created_at || 0).getTime() || 0) - (new Date(b.created_at || 0).getTime() || 0);
+                  }
+                  const aPrice = Number((a as any).avg_price ?? (a.target_price ?? 0) ?? 0);
+                  const bPrice = Number((b as any).avg_price ?? (b.target_price ?? 0) ?? 0);
+                  if (sortMode === 'priceLow') return aPrice - bPrice;
+                  if (sortMode === 'priceHigh') return bPrice - aPrice;
+                  return 0;
+                });
+                return list.map((item) => (
                 <motion.div
                   key={item.id}
                   initial={{ opacity: 0, x: 50 }}
@@ -123,12 +168,32 @@ const WatchlistPreview: React.FC = () => {
                       <span className="text-sm font-medium text-purple-600">Target: {item.target_price ? `₹${item.target_price}` : '—'}</span>
                       <span className="text-xs text-gray-400">Saved: {item.created_at ? new Date(item.created_at).toLocaleDateString() : '—'}</span>
                     </div>
+                    <div className="mt-3">
+                      <label className="text-xs text-gray-500 block mb-1">Never miss a drop alert — email</label>
+                      <div className="flex gap-2">
+                        <input
+                          value={emailMap[String(item.id)] || ''}
+                          onChange={(e) => setEmailMap((m) => ({ ...m, [String(item.id)]: e.target.value }))}
+                          placeholder="you@example.com"
+                          className="flex-1 rounded-lg px-3 py-2 bg-white/5 text-white outline-none"
+                        />
+                        <button
+                          onClick={() => {
+                            try { localStorage.setItem(`watchlist-email-${item.id}`, emailMap[String(item.id)] || ''); } catch (e) {}
+                          }}
+                          className="px-4 py-2 rounded-lg bg-purple-600 text-white font-semibold"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
                   </div>
                   <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${item.alerted ? 'bg-green-100 text-green-600 animate-pulse' : 'bg-gray-100 text-gray-500'}`}>
                     {item.alerted ? 'Price Drop!' : 'Tracking'}
                   </div>
                 </motion.div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
         </div>

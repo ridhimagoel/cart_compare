@@ -7,7 +7,6 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import BackgroundBlobs from '@/components/BackgroundBlobs';
 import ProductCard from '@/components/ProductCard';
-import PriceHistory from '@/components/PriceHistory';
 import StoreCloud from '@/components/StoreCloud';
 import Newsletter from '@/components/Newsletter';
 import Footer from '@/components/Footer';
@@ -143,34 +142,7 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <PriceHistory />
-            </div>
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="glass p-8 rounded-[2.5rem] flex flex-col justify-between bg-gradient-to-br from-purple-600 to-blue-700 text-white border-none"
-            >
-              <div>
-                <h3 className="text-3xl font-bold mb-4">Price Prediction</h3>
-                <p className="text-purple-100 leading-relaxed">
-                  Current trend indicates this product may drop by <span className="font-bold text-white">up to 15%</span> in the next 2 weeks.
-                  Set an alert and buy at your target price.
-                </p>
-              </div>
-              <Magnetic strength={0.3}>
-                <button 
-                  onClick={() => setIsAlertOpen(true)}
-                  className="w-full py-4 rounded-2xl bg-white text-purple-600 font-bold hover:bg-purple-50 transition-colors"
-                >
-                  Set Price Alert
-                </button>
-              </Magnetic>
-            </motion.div>
-          </div>
+          {/* Price history and prediction panels removed per request */}
         </section>
 
         <section id="features">

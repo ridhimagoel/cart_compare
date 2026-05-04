@@ -3,7 +3,6 @@
 
 -- proc_update_stats: compute avg/stddev/samples for each watchlist_id and upsert into product_stats
 DROP PROCEDURE IF EXISTS proc_update_stats;
-DELIMITER $$
 CREATE PROCEDURE proc_update_stats()
 BEGIN
   DECLARE done INT DEFAULT 0;
@@ -37,12 +36,10 @@ BEGIN
 
   END LOOP;
   CLOSE cur;
-END$$
-DELIMITER ;
+END;
 
 -- proc_check_alerts: for watchlist rows with target_price and not alerted, compare latest price and create alerts
 DROP PROCEDURE IF EXISTS proc_check_alerts;
-DELIMITER $$
 CREATE PROCEDURE proc_check_alerts()
 BEGIN
   DECLARE done INT DEFAULT 0;
@@ -68,8 +65,7 @@ BEGIN
 
   END LOOP;
   CLOSE cur;
-END$$
-DELIMITER ;
+END;
 
 -- Scheduled events (requires event_scheduler to be ON on the server)
 CREATE EVENT IF NOT EXISTS ev_update_stats

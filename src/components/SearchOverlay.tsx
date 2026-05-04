@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import type { ProductItem } from "@/lib/productSearch";
+import AddToWishlistButton from '@/components/AddToWishlistButton';
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -432,6 +433,10 @@ const SearchOverlay = ({ isOpen, onClose }: SearchOverlayProps) => {
                   ))}
                 </div>
               </motion.div>
+            </div>
+
+            <div className="flex flex-col items-end gap-2">
+              <AddToWishlistButton title={item.title} url={item.url} store={item.store} className="px-3 py-1 rounded-md" />
             </div>
           </div>
         </motion.div>

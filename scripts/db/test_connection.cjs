@@ -6,7 +6,7 @@ const mysql = require('mysql2/promise');
 async function main() {
   const host = process.env.DB_MYSQL_HOST || 'localhost';
   const port = Number(process.env.DB_MYSQL_PORT || 3306);
-  const user = process.env.DB_MYSQL_USER || 'cartuser';
+  const user = process.env.DB_MYSQL_USER || 'root';
   const password = process.env.DB_MYSQL_PASSWORD || '205Ridhimag@';
   const database = process.env.DB_MYSQL_DATABASE || 'cart_compare';
 

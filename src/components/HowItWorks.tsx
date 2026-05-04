@@ -54,7 +54,7 @@ const HowItWorks = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+        <div className="flex gap-6 overflow-x-auto pb-4 md:gap-12 relative">
           {steps.map((step, i) => (
             <motion.div
               key={step.title}
@@ -63,10 +63,9 @@ const HowItWorks = () => {
               whileHover={{ y: -4, scale: 1.015 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.2 }}
-              className="group relative"
+              className="group relative flex-shrink-0 min-w-[280px] md:min-w-0"
             >
-              <div className="how-step-card rounded-[2.2rem] p-8 h-full border border-white/15 bg-[linear-gradient(120deg,rgba(8,17,40,0.94),rgba(5,9,24,0.96))] shadow-[0_20px_60px_rgba(2,6,23,0.45)] transition-all duration-500 relative overflow-hidden group-hover:border-purple-300/40 group-hover:shadow-[0_24px_80px_rgba(124,58,237,0.22)]">
-                <div className="pointer-events-none absolute inset-0 rounded-[2.2rem] opacity-0 group-hover:opacity-100 group-hover:animate-[pulse_2.5s_ease-in-out_1] bg-gradient-to-r from-blue-400/8 via-purple-400/12 to-pink-400/8" />
+              <div className="how-step-card rounded-[2.2rem] p-8 h-full border border-white/15 bg-[linear-gradient(120deg,rgba(8,17,40,0.94),rgba(5,9,24,0.96))] shadow-[0_20px_60px_rgba(2,6,23,0.45)] transition-all duration-500 relative overflow-hidden">
 
                 <div className="flex items-start justify-between mb-8">
                   <div className={`w-20 h-20 rounded-[1.4rem] ${step.bg} flex items-center justify-center relative transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6`}>
@@ -100,36 +99,7 @@ const HowItWorks = () => {
           ))}
         </div>
 
-        <div className="mt-20">
-          <div className="text-center mb-6">
-            <h3 className="text-2xl md:text-3xl font-bold tracking-tight">What you get in every comparison</h3>
-            <p className="text-gray-600 mt-2">Clear pricing, smart suggestions, and all key details in one place.</p>
-          </div>
-          <div className="w-full aspect-video overflow-hidden rounded-[2rem] border border-white/20 bg-black/30">
-            {videoFailed ? (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-50/60 to-blue-50/60">
-                <div className="px-6 text-center">
-                  <p className="text-sm font-bold uppercase tracking-widest text-purple-700">Upload Required</p>
-                  <p className="mt-2 text-gray-600 dark:text-slate-300">
-                    Add your video at <span className="font-semibold">public/videos/search-demo.mp4</span> and refresh.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <video
-                className="h-full w-full object-cover"
-                controls
-                muted
-                playsInline
-                preload="metadata"
-                poster="/brand/compare-cart-mark.svg"
-                onError={() => setVideoFailed(true)}
-              >
-                <source src={DEMO_VIDEO_SRC} type="video/mp4" />
-              </video>
-            )}
-          </div>
-        </div>
+        {/* Video/demo section removed per request */}
       </div>
     </section>
   );
